@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>온라인 설문 슬라이드쇼</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: #F0F4C3; font-family: Arial, sans-serif;
+    }
+    #container {
+      box-sizing: border-box;
+      width: 90vw; max-width: 900px; max-height: 90vh;
+      overflow-y: auto; padding: 24px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px); border-radius: 8px;
+    }
+    h2 {
+      margin-top: 0; font-size: 1.6em;
+      border-bottom: 2px solid #DDD; padding-bottom: 8px;
+      color: #33691E;
+    }
+    .filter-row {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+    }
+    .filter-row input,
+    .filter-row select {
+      flex: 1; min-width: 150px;
+      padding: 8px 12px; font-size: 1em;
+      border: 1px solid #AAA; border-radius: 4px; background: #FFF;
+    }
+    .filter-group { margin-bottom: 16px; }
+    .filter-group span {
+      font-weight: bold; margin-right: 8px; color: #33691E;
+    }
+    .pill {
+      display: inline-block; margin: 4px 6px 4px 0;
+      padding: 6px 14px; border: 1px solid #AAA;
+      border-radius: 16px; background: #FFF; cursor: pointer;
+      transition: .2s; user-select: none;
+    }
+    .pill.selected {
+      background: #AED581; color: #1B5E20; border-color: #7CB342;
+    }
+    #start {
+      display: block; margin: 24px auto 0;
+      padding: 12px 32px; font-size: 1.1em;
+      background: #8BC34A; color: #fff;
+      border: none; border-radius: 4px; cursor: pointer;
+      transition: .2s;
+    }
+    #start:hover { background: #7CB342; }
+    .hidden { display: none; }
+    .timer-segment {
+      margin-bottom: 12px; font-size: 1em; color: #555;
+    }
+    #personal-info {
+      font-size: 1.2em; color: #2E7D32;
+      margin-bottom: 12px; padding: 12px;
+      background: #E8F5E9; border: 1px solid #C8E6C9;
+      border-radius: 4px;
+    }
+    .question {
+      font-size: 2em; color: #33691E; margin-bottom: 20px;
+    }
+    #total-timer, #segment-timer, #timer, #progress {
+      font-size: 1em; color: #C62828; margin-bottom: 10px;
+    }
+    .answers {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
+    }
+    .answers button {
+      flex: 1; min-width: 120px; padding: 16px; font-size: 1.2em;
+      border: 1px solid #888; border-radius: 4px; background: #FFF;
+      transition: .2s;
+    }
+    .answers button:hover {
+      background: #F1F8E9; border-color: #AED581;
+    }
+    .answers button.selected {
+      background: #8BC34A; color: #fff; border-color: #558B2F;
+    }
+    /* per-question 안내문 */
+    #hint {
+      font-size: 0.9em; color: #555; margin-bottom: 20px;
+      text-align: center;
+    }
+    #survey nav {
+      display: flex; gap: 10px; margin-top: 10px;
+    }
+    #survey nav #prev { display: none; }
+    #survey nav button {
+      flex: 1; padding: 12px 20px; font-size: 1.2em;
+      background: #AED581; border: none;
+      border-radius: 4px; color: #1B5E20; transition: .2s;
+    }
+    #survey nav button:disabled {
+      background: #C8E6C9; cursor: not-allowed;
+    }
+    #survey nav button:not(:disabled):hover {
+      background: #7CB342;
+    }
+    #download-link {
+      display: inline-block; margin-top: 20px; padding: 10px 20px;
+      background: #4CAF50; color: #fff;
+      text-decoration: none; border-radius: 4px; transition: .2s;
+    }
+    #download-link:hover { background: #388E3C; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div id="container">
+
+    <!-- 1) 개인정보 입력 -->
+    <div id="user-form">
+      <h2>정보 입력</h2>
+      <div class="timer-segment">
+        • 개인정보 입력 남은 시간: <span id="info-timer">02:00</span>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="name" placeholder="1. 학생 성명" />
+        <input type="text" id="school" placeholder="2. 출신 학교" />
+        <select id="gender">
+          <option value="" disabled selected>3. 성별</option>
+          <option value="남">남성</option>
+          <option value="여">여성</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <select id="region">
+          <option value="" disabled selected>4. 거주지역</option>
+          <option>강원도</option><option>광주 광역시</option>
+          <option>경기도</option><option>경상남도</option>
+          <option>경상북도</option><option>대구 광역시</option>
+          <option>대전 광역시</option><option>부산 광역시</option>
+          <option>서울 특별시</option><option>세종 특별자치시</option>
+          <option>울산 광역시</option><option>인천 광역시</option>
+          <option>전라남도</option><option>전라북도</option>
+          <option>제주 특별자치도</option><option>충청남도</option>
+          <option>충청북도</option>
+        </select>
+      </div>
+      <div class="filter-group hidden" id="subregion-group">
+        <span>4-1. 서울 내 권역 선택</span>
+        <div class="pill" data-value="강남">강남</div>
+        <div class="pill" data-value="서초">서초</div>
+        <div class="pill" data-value="송파">송파</div>
+        <div class="pill" data-value="목동">목동</div>
+        <div class="pill" data-value="중계">중계</div>
+        <div class="pill" data-value="기타 지역">기타 지역</div>
+      </div>
+      <div class="filter-group hidden" id="middleschool-group">
+        <span>4-2. 출신 중학교 선택</span>
+        <select id="middleschool"></select>
+      </div>
+      <div class="filter-group" id="bcount-group">
+        <span>5. B등급 과목 수</span>
+        <div class="pill" data-value="0개">0개</div>
+        <div class="pill" data-value="1개">1개</div>
+        <div class="pill" data-value="2개~3개">2개~3개</div>
+        <div class="pill" data-value="5개 이하">5개 이하</div>
+        <div class="pill" data-value="5개 초과">5개 초과</div>
+      </div>
+      <div class="filter-group" id="schooltype-group">
+        <span>6. 진학 지망 고교 분류</span>
+        <div class="pill" data-value="전국단위자사고">전국단위자사고</div>
+        <div class="pill" data-value="지역자사고">지역자사고</div>
+        <div class="pill" data-value="외고">외고</div>
+        <div class="pill" data-value="국제고">국제고</div>
+        <div class="pill" data-value="서울형 자사고">서울형 자사고</div>
+        <div class="pill" data-value="일반고">일반고</div>
+      </div>
+      <button id="start">설문 시작</button>
+    </div>
+
+    <!-- 2) 설문 화면 -->
+    <div id="survey" class="hidden">
+      <h2>설문 진행</h2>
+      <div class="timer-segment">• 전체 제한 시간: 82분</div>
+      <div class="timer-segment">• Type A 설문: 240문항 → 40분 (10초/문항)</div>
+
+      <div id="personal-info"></div>
+      <div class="question" id="question-text"></div>
+      <div id="total-timer"></div>
+      <div id="segment-timer"></div>
+      <div id="timer"></div>
+      <div id="progress"></div>
+
+      <!-- per-question 답변 버튼들 -->
+      <div class="answers" id="answers"></div>
+      <!-- 안내문 -->
+      <div id="hint">⏱ 문항별 제한 시간은 10초입니다. 10초 안에 반드시 선택해 주세요. 미선택 시에는 '보통(3)'으로 체크됩니다.</div>
+
+      <nav>
+        <button id="prev">◀ 이전</button>
+        <button id="next" disabled>다음 ▶</button>
+      </nav>
+    </div>
+
+    <!-- 3) 결과 화면 -->
+    <div id="result" class="hidden">
+      <h2>감사합니다!</h2>
+      <a id="download-link" href="#" download="survey_responses.xlsx">엑셀 다운로드</a>
+    </div>
+  </div>
+</body>
+</html>
