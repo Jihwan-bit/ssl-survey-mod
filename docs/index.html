@@ -51,19 +51,26 @@
       border: none; border-radius: 4px; cursor: pointer;
       transition: .2s;
     }
-    #start:hover { background: #7CB342; }
+    #start:disabled {
+      background: #C8E6C9; cursor: not-allowed;
+    }
+    #start:not(:disabled):hover {
+      background: #7CB342;
+    }
     .hidden { display: none; }
+
+    /* — 이하 설문·결과 화면 스타일 — */
     .timer-segment {
       margin-bottom: 12px; font-size: 1em; color: #555;
     }
     #personal-info {
-      font-size: 1.2em; color: #2E7D32;
+      font-size: 0.8em; color: #2E7D32;
       margin-bottom: 12px; padding: 12px;
       background: #E8F5E9; border: 1px solid #C8E6C9;
       border-radius: 4px;
     }
     .question {
-      font-size: 2em; color: #33691E; margin-bottom: 20px;
+      font-size: 1.4em; color: #33691E; margin-bottom: 20px;
     }
     #total-timer, #segment-timer, #timer, #progress {
       font-size: 1em; color: #C62828; margin-bottom: 10px;
@@ -82,7 +89,6 @@
     .answers button.selected {
       background: #8BC34A; color: #fff; border-color: #558B2F;
     }
-    /* per-question 안내문 */
     #hint {
       font-size: 0.9em; color: #555; margin-bottom: 20px;
       text-align: center;
@@ -109,18 +115,25 @@
     }
     #download-link:hover { background: #388E3C; }
   </style>
+
+  <!-- 외부 스크립트 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="script.js" defer></script>
 </head>
+
 <body>
   <div id="container">
-
     <!-- 1) 개인정보 입력 -->
     <div id="user-form">
-      <h2>정보 입력</h2>
-      <div class="timer-segment">
-        • 개인정보 입력 남은 시간: <span id="info-timer">02:00</span>
+      <div style="font-size:1.1em; background:#FFFDE7; padding:16px; border-left:6px solid #FBC02D; margin-bottom:16px; color:#5D4037;">
+        📋 본 설문은 총 3단계로 구성되어 있으며, 최대 소요 시간은 <strong>90분</strong>입니다.<br><br>
+        1️⃣ <strong>Type A</strong>: 성향 검사 – 총 240문항, 약 40분<br>
+        2️⃣ <strong>Type B</strong>: 영어 이해력 – 총 10문항, 약 10분<br>
+        3️⃣ <strong>Type C</strong>: 수학 문제 해결력 – 총 10문항, 약 40분<br><br>
+        모든 단계는 설문 시작 후 자동으로 이어집니다. 성실한 응답 부탁드립니다.
       </div>
+
+      <h2>정보 입력</h2>
       <div class="filter-row">
         <input type="text" id="name" placeholder="1. 학생 성명" />
         <input type="text" id="school" placeholder="2. 출신 학교" />
@@ -131,20 +144,30 @@
           <option value="기타">기타</option>
         </select>
       </div>
+
       <div class="filter-row">
         <select id="region">
           <option value="" disabled selected>4. 거주지역</option>
-          <option>강원도</option><option>광주 광역시</option>
-          <option>경기도</option><option>경상남도</option>
-          <option>경상북도</option><option>대구 광역시</option>
-          <option>대전 광역시</option><option>부산 광역시</option>
-          <option>서울 특별시</option><option>세종 특별자치시</option>
-          <option>울산 광역시</option><option>인천 광역시</option>
-          <option>전라남도</option><option>전라북도</option>
-          <option>제주 특별자치도</option><option>충청남도</option>
-          <option>충청북도</option>
+          <option value="강원도">강원도</option>
+          <option value="광주 광역시">광주 광역시</option>
+          <option value="경기도">경기도</option>
+          <option value="경상남도">경상남도</option>
+          <option value="경상북도">경상북도</option>
+          <option value="대구 광역시">대구 광역시</option>
+          <option value="대전 광역시">대전 광역시</option>
+          <option value="부산 광역시">부산 광역시</option>
+          <option value="서울 특별시">서울 특별시</option>
+          <option value="세종 특별자치시">세종 특별자치시</option>
+          <option value="울산 광역시">울산 광역시</option>
+          <option value="인천 광역시">인천 광역시</option>
+          <option value="전라남도">전라남도</option>
+          <option value="전라북도">전라북도</option>
+          <option value="제주 특별자치도">제주 특별자치도</option>
+          <option value="충청남도">충청남도</option>
+          <option value="충청북도">충청북도</option>
         </select>
       </div>
+
       <div class="filter-group hidden" id="subregion-group">
         <span>4-1. 서울 내 권역 선택</span>
         <div class="pill" data-value="강남">강남</div>
@@ -154,10 +177,14 @@
         <div class="pill" data-value="중계">중계</div>
         <div class="pill" data-value="기타 지역">기타 지역</div>
       </div>
+
       <div class="filter-group hidden" id="middleschool-group">
         <span>4-2. 출신 중학교 선택</span>
-        <select id="middleschool"></select>
+        <select id="middleschool">
+          <option value="" disabled selected>중학교 선택</option>
+        </select>
       </div>
+
       <div class="filter-group" id="bcount-group">
         <span>5. B등급 과목 수</span>
         <div class="pill" data-value="0개">0개</div>
@@ -166,6 +193,7 @@
         <div class="pill" data-value="5개 이하">5개 이하</div>
         <div class="pill" data-value="5개 초과">5개 초과</div>
       </div>
+
       <div class="filter-group" id="schooltype-group">
         <span>6. 진학 지망 고교 분류</span>
         <div class="pill" data-value="전국단위자사고">전국단위자사고</div>
@@ -175,26 +203,28 @@
         <div class="pill" data-value="서울형 자사고">서울형 자사고</div>
         <div class="pill" data-value="일반고">일반고</div>
       </div>
-      <button id="start">설문 시작</button>
+
+      <button id="start" disabled>설문 시작</button>
     </div>
 
-    <!-- 2) 설문 화면 -->
+    <!-- 2) 설문 진행 화면 -->
     <div id="survey" class="hidden">
       <h2>설문 진행</h2>
-      <div class="timer-segment">• 전체 제한 시간: 82분</div>
-      <div class="timer-segment">• Type A 설문: 240문항 → 40분 (10초/문항)</div>
+      <div class="timer-segment">• 전체 제한 시간: 90분</div>
+      <div class="timer-segment">• Type A: 240문항 → 40분 (10초/문항)</div>
+      <div class="timer-segment">• Type B: 10문항 → 10분 (60초/문항)</div>
+      <div class="timer-segment">• Type C: 10문항 → 40분 (4분/문항)</div>
 
       <div id="personal-info"></div>
       <div class="question" id="question-text"></div>
       <div id="total-timer"></div>
       <div id="segment-timer"></div>
       <div id="timer"></div>
-      <div id="progress"></div>
-
-      <!-- per-question 답변 버튼들 -->
+      <div id="progress">
+        <span id="questionProgress">0/0</span>
+      </div>
+      
       <div class="answers" id="answers"></div>
-      <!-- 안내문 -->
-      <div id="hint">⏱ 문항별 제한 시간은 10초입니다. 10초 안에 반드시 선택해 주세요. 미선택 시에는 '보통(3)'으로 체크됩니다.</div>
 
       <nav>
         <button id="prev">◀ 이전</button>
@@ -205,8 +235,117 @@
     <!-- 3) 결과 화면 -->
     <div id="result" class="hidden">
       <h2>감사합니다!</h2>
-      <a id="download-link" href="#" download="survey_responses.xlsx">엑셀 다운로드</a>
+      <a id="download-link" href="#" download="survey_responses.xlsx">📥 개인 결과 다운로드</a>
+      <a id="db-download-link" href="#" download="survey_database.xlsx">📊 누적 DB 다운로드</a>
     </div>
   </div>
+
+  <!-- inline 스크립트: 4번 동적 처리 & start 버튼 활성화 -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const regionIn   = document.getElementById('region');
+    const subRgGrp   = document.getElementById('subregion-group');
+    const msGrp      = document.getElementById('middleschool-group');
+    const msSelect   = document.getElementById('middleschool');
+    const schoolIn   = document.getElementById('school');
+    const subPills   = document.querySelectorAll('#subregion-group .pill');
+    const nameIn     = document.getElementById('name');
+    const genderIn   = document.getElementById('gender');
+    const bPills     = document.querySelectorAll('#bcount-group .pill');
+    const tPills     = document.querySelectorAll('#schooltype-group .pill');
+    const startBtn   = document.getElementById('start');
+
+    // 입력 완성 시만 활성화
+    function validate() {
+      const nameOK   = !!nameIn.value.trim();
+      const genderOK = !!genderIn.value;
+      const regionOK = !!regionIn.value;
+      let schoolOK  = false;
+      if(regionIn.value === '서울 특별시') {
+        const sel = [...subPills].find(p=>p.classList.contains('selected'));
+        if(sel) {
+          if(sel.dataset.value === '기타 지역') schoolOK = !!schoolIn.value.trim();
+          else schoolOK = !!msSelect.value;
+        }
+      } else {
+        schoolOK = !!schoolIn.value.trim();
+      }
+      const bOK = [...bPills].some(p=>p.classList.contains('selected'));
+      const tOK = [...tPills].some(p=>p.classList.contains('selected'));
+      startBtn.disabled = !(nameOK && genderOK && regionOK && schoolOK && bOK && tOK);
+    }
+
+    // 4번: 거주지역 변경
+  function regionChange() {
+    if (regionIn.value === '서울 특별시') {
+      // 서울 → 구 선택을 위해 페널만 열고, 둘 다 숨김
+      subRgGrp.classList.remove('hidden');
+      msGrp.classList.add('hidden');
+      schoolIn.classList.add('hidden');
+      msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+    } else {
+      // 기타 지역 → 모든 서울 관련 UI 숨기고, 텍스트박스만 표시
+      subRgGrp.classList.add('hidden');
+      msGrp.classList.add('hidden');
+      msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+      schoolIn.classList.remove('hidden');
+    }
+    validate();
+  }
+    regionIn.addEventListener('change', regionChange);
+    regionIn.addEventListener('input', regionChange);
+
+    const schoolMap = {
+      '강남': ['단대부중', '역삼중', '도곡중', '대명중', '대청중', '숙명여중', '휘문중'],
+      '서초': ['원촌중','서초중','반포중', '세화여중'],
+      '송파': ['잠실중','송례중','풍납중'],
+      '목동': ['목동중','목일중','신목중', '월촌중', '양정중', '목운중'],
+      '중계': ['중계중','상명중','불암중', '을지중']
+    };
+
+    // 4-1번: 권역 클릭
+subPills.forEach(p => p.addEventListener('click', () => {
+  // (1) 비주얼 토글
+  subPills.forEach(x => x.classList.remove('selected'));
+  p.classList.add('selected');
+
+  const v = p.dataset.value;
+  if (v === '기타 지역') {
+    // 텍스트 입력만
+    msGrp.classList.add('hidden');
+    schoolIn.classList.remove('hidden');
+    msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+  } else {
+    // 드롭다운으로 선택
+    msGrp.classList.remove('hidden');
+    schoolIn.classList.add('hidden');
+    msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+    schoolMap[v].forEach(sch => {
+      const opt = document.createElement('option');
+      opt.value = sch;
+      opt.text  = sch;
+      msSelect.append(opt);
+    });
+  }
+  validate();
+}));
+
+    // 5,6번 pill 셋업
+    function setupPills(group) {
+      group.forEach(p => p.addEventListener('click', () => {
+        group.forEach(x=>x.classList.remove('selected'));
+        p.classList.add('selected');
+        validate();
+      }));
+    }
+    setupPills([...bPills]);
+    setupPills([...tPills]);
+
+    // 입력 시마다 검증
+    [nameIn, schoolIn, msSelect, genderIn].forEach(el =>
+      el.addEventListener('input', validate)
+    );
+  });
+  </script>
 </body>
 </html>
