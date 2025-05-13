@@ -14,6 +14,7 @@ window.addEventListener('DOMContentLoaded', () => {
   let questionsA = [], questionsB = [], questionsC = [];
   let respA = [], respB = [], respC = [];
 
+
   /* ── DOM 참조 ─────────────────────────────────────── */
   const userForm        = document.getElementById('user-form');
   const surveyDiv       = document.getElementById('survey');
@@ -47,6 +48,27 @@ window.addEventListener('DOMContentLoaded', () => {
   const prevBtn         = document.getElementById('prev');
   const nextBtn         = document.getElementById('next');
   const downloadLink    = document.getElementById('download-link');
+
+  // ── 디버그 버튼 핸들러 (설문 시작 후에만 눌러주세요) ─────────────────────
+devB.addEventListener('click', () => {
+   // Type A 응답을 모두 “3 (보통)”으로
+   respA = respA.map(() => 3);
+   // Type A 소요시간(240문항×10초)을 모두 소모했다고 설정
+   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
+   switchToTypeB();
+ });
+
+ devC.addEventListener('click', () => {
+   // Type A 응답을 모두 “3 (보통)”
+   respA = respA.map(() => 3);
+   // Type B 설문을 스킵했으니 모두 “A” 로
+   respB = respB.map(() => 'A');
+   // Type A + Type B 소요시간(240×10초 + 10×60초)을 모두 소모했다고 설정
+   startTime = Date.now()
+     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
+   switchToTypeC();
+ });
+
 
    // 1~6번 입력 완료 시에만 시작 버튼 활성화
   function validatePersonalInfo() {
@@ -396,12 +418,34 @@ function renderQuestionA() {
   // 전역 변수: Type C 페이지 인덱스 (0–5: Q1–Q6, 6: Q7–Q10 묶음)
   let typeCPage = 0;
 
+
+  /* ── 7) A→B 전환 ─────────────────────────────── */
+
 // Type C 시작 시 호출
-function switchToTypeC() {
+ function switchToTypeC() {
   typeCPage = 0;
-  respC = new Array(10);         // 응답 배열 초기화
+  // Type C 세그먼트 타이머 시작
+  startSegmentCTimer();
+  respC = new Array(questionsC.length).fill(null);
   renderQuestionC();
+ }
+
+// ── Type C 세그먼트 타이머 ─────────────────────────
+function startSegmentCTimer() {
+  clearInterval(segmentInt);
+  updateSegmentCTimer();
+  segmentInt = setInterval(updateSegmentCTimer, 1000);
 }
+function updateSegmentCTimer() {
+  // 이미 사용된 시간 = (페이지 인덱스 × 1문항 시간) + (남은 qLeft 보정)
+  const used = typeCPage * C_Q_SEC + ((C_Q_SEC) - (qLeft || 0));
+  const total = questionsC.length * C_Q_SEC;
+  const remain = total - used;
+  segmentTimerDiv.textContent = `⏱ Type C 남은시간: ${fmt(remain)}`;
+  if (remain <= 0) finishSurvey();
+}
+
+
   /* ── 10) Type C 렌더 & 이동 ──────────────────── */
   // Type C 렌더링 (Q1–Q6 개별, Q7–Q10 묶음)
 function renderQuestionC() {
@@ -412,6 +456,8 @@ function renderQuestionC() {
   if (typeCPage < 6) {
     const q = questionsC[typeCPage];
     surveyTitle.textContent = `Type C (문항 ${q.no}/10)`;
+
+    progressDiv.textContent = `${typeCPage+1}/${questionsC.length}`;
 
     questionText.innerHTML = `
       <div>
@@ -480,7 +526,7 @@ function renderQuestionC() {
         `;
       });
 
-    html += `<button id="finishSurveyBtn" style="margin-top:20px;">설문 완료</button>`;
+    html += `<button id="finishSurveyBtn" style="width:300px; margin-top:20px;"><strong>설문 완료</strong></button>`;
     questionText.innerHTML = html;
     prevBtn.style.display = 'none';
     nextBtn.style.display = 'none';
@@ -523,212 +569,183 @@ function renderQuestionC() {
   }
 
   /* ── 11) 최종 결과 & 다운로드 ─────────────────── */
-  function finishSurvey(){
-    clearQuestionTimer();
-    clearInterval(totalInt);
-    surveyDiv.classList.add('hidden');
-    resultDiv.classList.remove('hidden');
-    const wb = XLSX.utils.book_new();
+// Global survey database loaded from localStorage
+// Load question definitions from Questions.xlsx at startup
 
-    // ── Type A 시트 ──
-wb.SheetNames.push('Type A');
-const typeAData = questionsA.map((q,i) => ({
-  연번:     q.no,
-  척도:     q.scale,
-  문항:     q.q,
-  응답:     respA[i],
-  점수:     respA[i] * 5        // 5점 척도로 환산
-}));
-wb.Sheets['Type A'] = XLSX.utils.json_to_sheet(typeAData);
+  function loadQuestions() {
+  return fetch('Questions.xlsx')
+    .then(res => res.arrayBuffer())
+    .then(ab => {
+      const wb = XLSX.read(ab, { type: 'array' });
 
-// ── 척도별 합계·평균 행 추가 ──
-const scales = [...new Set(typeAData.map(r => r.척도))];
-const summary = scales.map(scaleName => {
-  const items = typeAData.filter(r => r.척도 === scaleName);
-  const total = items.reduce((s,r) => s + r.점수, 0);
-  const avg   = items.length ? total / items.length : 0;
-  return {
-    척도: scaleName,
-    총점: total,
-    평균: avg.toFixed(2)
-  };
+      // Type A: 연번, 척도(대분류), 문항
+      questionsA = XLSX.utils.sheet_to_json(wb.Sheets['Type A'], { defval: '' })
+        .map(r => ({
+          no:       r['연번'],
+          category: r['척도(대분류)'],
+          text:     r['문항']
+        }));
+
+      // Type B: 연번, 문항, 답, 선택지(A~D)
+      questionsB = XLSX.utils.sheet_to_json(wb.Sheets['Type B'], { defval: '' })
+        .map(r => ({
+          no:      r['연번'],
+          question:r['문항'],
+          correct: r['답'],
+          opts:    { A:r['(A)'], B:r['(B)'], C:r['(C)'], D:r['(D)'] }
+        }));
+
+      // Type C: B와 동일 포맷
+      questionsC = XLSX.utils.sheet_to_json(wb.Sheets['Type C'], { defval: '' })
+        .map(r => ({
+          no:      r['연번'],
+          question:r['문항'],
+          correct: r['답'],
+          opts:    { A:r['(A)'], B:r['(B)'], C:r['(C)'], D:r['(D)'] }
+        }));
+
+      // 응답 배열 초기화: 질문 개수에 맞게 null 채우기
+      respA = Array(questionsA.length).fill(null);
+      respB = Array(questionsB.length).fill(null);
+      respC = Array(questionsC.length).fill(null);
+    });
+}
+
+// Initialize survey after questions are loaded
+document.addEventListener('DOMContentLoaded', () => {
+  loadQuestions().then(() => startSurvey());
 });
-// 워크시트 맨 아래에 요약 추가
-XLSX.utils.sheet_add_json(
-  wb.Sheets['Type A'],
-  summary,
-  { origin: -1, skipHeader: true }
-);
 
-// ── Type B 시트 ──
-wb.SheetNames.push('Type B');
-const typeBData = questionsB.map((q,i) => {
-  const userAns = respB[i];
-  const correct = q.a;
-  const ok      = userAns === correct ? 'O' : 'X';
-  return {
-    연번:   q.no,
-    문항:   q.q,
-    정답:   correct,
-    응답:   userAns,
-    정오:   ok,
-    점수:   ok === 'O' ? 5 : 0
-  };
-});
-wb.Sheets['Type B'] = XLSX.utils.json_to_sheet(typeBData);
+// Global survey database loaded from localStorage
+// 3) 전역 DB 로딩
+const STORAGE_KEY = 'surveyDB';
+let surveyDB = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
-// ── Type C 시트 ──
-wb.SheetNames.push('Type C');
-const typeCData = questionsC.map((q,i) => {
-  const userAns = respC[i];
-  const correct = q.a;
-  const ok      = userAns === correct ? 'O' : 'X';
-  return {
-    연번:   q.no,
-    문항:   q.q,
-    정답:   correct,
-    응답:   userAns,
-    정오:   ok,
-    점수:   ok === 'O' ? 5 : 0
-  };
-});
-wb.Sheets['Type C'] = XLSX.utils.json_to_sheet(typeCData);
+// Main finishSurvey function
+function finishSurvey() {
+  // A) UI 전환 & 타이머 정리
+  clearQuestionTimer();
+  clearInterval(totalInt);
+  surveyDiv.classList.add('hidden');
+  resultDiv.classList.remove('hidden');
 
-
-    // (추가) 시트 “Personal Info” 생성
-  wb.SheetNames.push('Personal Info');
-  // 1) 옵션들에서 placeholder(빈값) 제외
-  // 2) 실제 선택된 인덱스 찾기 (0부터 시작)
-  // 3) 서울일 때만 subregion·middleschool, 아니면 N/A
-  const subVal = (regionIn.value==='서울 특별시' && subIdx>=0)
-                   ? subPills[subIdx].dataset.value
-                   : 'N/A';
-  const msIdx = (regionIn.value==='서울 특별시' && msSelect.selectedIndex>0)
-                   ? msSelect.selectedIndex-1
-                   : 'N/A';
-  const msVal = (regionIn.value==='서울 특별시' && msSelect.value)
-                   ? msSelect.value
-                   : 'N/A';
-  // 4) B등급 과목 수, 희망 고교 분류
-  const bVal = bIdx>=0 ? bPills[bIdx].dataset.value : 'N/A';
-  const tVal = tIdx>=0 ? tPills[tIdx].dataset.value : 'N/A';
-
-  wb.Sheets['Personal Info'] = XLSX.utils.json_to_sheet([{
-    이름:               nameIn.value,
-    성별:               genderIn.value,             성별_index:            genderIdx,
-    거주지역:           regionIn.value,             거주지역_index:        regionIdx,
-    세부권역:           subVal,                     세부권역_index:        subIdx>=0?subIdx:'N/A',
-    출신중학교:         msVal,                      출신중학교_index:      msIdx,
-    B등급과목수:       bVal,                       B등급과목수_index:     bIdx,
-    희망고교분류:       tVal,                       희망고교분류_index:     tIdx
-  }]);
-
-  // ── 이후 기존 워크북 쓰기 로직 ──
-
-   // ─── 0) 로컬 DB 및 카운터 불러오기 ───
-  const dbRecords = JSON.parse(localStorage.getItem('surveyDB') || '[]');
-  const stuCount = parseInt(localStorage.getItem('stuCount') || '1', 10);
-  const stuID    = 'STU' + String(stuCount).padStart(4, '0');
-  // 다음 설문을 위해 카운터 증가 저장
-  localStorage.setItem('stuCount', String(stuCount + 1));
-
-  // ─── 1) 인덱스 값 계산 (이전 예시에서 쓰던 방법 그대로) ───
-  // (1) 이름·학교
-  const nameVal   = nameIn.value;
-  const schoolVal = schoolIn.value;
-
-  // (2) 성별
-  const genderOpts = Array.from(genderIn.options).filter(o=>o.value);
-  const genderIdx  = genderOpts.findIndex(o=>o.value === genderIn.value);
-
-  // (3) 거주지역
+  // B) 개인 정보 수집
+  const nameVal    = nameIn.value || 'N/A';
+  const genderMap  = { '남자':0, '여자':1 };
+  const genderCode = genderMap[genderIn.value] ?? 2;
   const regionOpts = Array.from(regionIn.options).filter(o=>o.value);
-  const regionIdx  = regionOpts.findIndex(o=>o.value === regionIn.value);
-
-  // (4) 서울 구
-  let subIdx = -1;
-  if(regionIn.value === '서울 특별시'){
-    subIdx = subPills.findIndex(p=>p.classList.contains('selected'));
+  const sortedRegions = regionOpts.map(o=>o.text).sort((a,b)=>a.localeCompare(b,'ko'));
+  const regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);
+  let districtCode=-1, specialSchool=0;
+  if(regionIn.value==='서울 특별시') {
+    districtCode = subPills.findIndex(p=>p.classList.contains('selected'));
+    // TODO: 특수학교 판단 로직
   }
-  const seoulDistrictIdx = subIdx < 0 ? 0 : subIdx + 1;
+  const schoolVal = schoolIn.value || 'N/A';
+  const bCount    = bPills.findIndex(p=>p.classList.contains('selected'));
+  const tChoice   = tPills.findIndex(p=>p.classList.contains('selected'));
 
-  // (5) 특수학교 여부
-  const specialSchoolIdx = 
-    regionIn.value === '서울 특별시' &&
-    seoulDistrictIdx !== 0 &&
-    schoolIn.value !== '기타'
-      ? 1 : 0;
+  // C) Type A 처리: 데이터+평균
+  const dataA = questionsA.map((q,i)=>({
+    연번:   q.no,
+    '척도(대분류)': q.category,
+    응답:   respA[i]
+  }));
+  const categories = [...new Set(questionsA.map(q=>q.category))];
+  const averages = categories.map(cat=>{
+    const vals = questionsA
+      .map((q,i)=> q.category===cat ? respA[i] : null)
+      .filter(v=>v!=null);
+    return {
+      '척도(대분류)': cat,
+      평균:          vals.length ? vals.reduce((s,x)=>s+x,0)/vals.length : 0
+    };
+  });
 
-  // (6) B등급 과목수
-  const bIdx = bPills.findIndex(p=>p.classList.contains('selected'));
+  // D) Type B 처리: 정답비교+총점
+  const dataB = questionsB.map((q,i)=>({
+    연번: q.no,
+    응답: respB[i],
+    정답: q.correct,
+    정오: respB[i]===q.correct ? 'O' : 'X'
+  }));
+  const totalB = dataB.reduce((s,row)=>s + (row.정오==='O'?5:0),0);
 
-  // (7) 희망 고교 분류
-  const tIdx = tPills.findIndex(p=>p.classList.contains('selected'));
+  // E) Type C 처리: B와 동일
+  const dataC = questionsC.map((q,i)=>({
+    연번: q.no,
+    응답: respC[i],
+    정답: q.correct,
+    정오: respC[i]===q.correct ? 'O' : 'X'
+  }));
+  const totalC = dataC.reduce((s,row)=>s + (row.정오==='O'?5:0),0);
 
-  // ─── 2) Type A 척도별 평균 계산 (이전 요약 summary 배열 재활용) ───
-  // summary 는 [{척도, 총점, 평균}, …] 의 형태라고 가정
-  const getAvg = name => {
-    const hit = summary.find(s=>s.scaleName===name);
-    return hit ? Number(hit.avg.toFixed(2)) : 0;
+  // F) DB 누적
+  const nextId = 'STU'+String(surveyDB.length+1).padStart(4,'0');
+  const now    = new Date();
+  const completeAt = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} `+
+                     `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const row = {
+    학생ID: nextId,
+    학생성명: nameVal,
+    출신학교: schoolVal,
+    성별: genderCode,
+    거주지역: regionCode,
+    서울거주구: districtCode,
+    특수학교: specialSchool,
+    B등급과목수: bCount,
+    진학희망고교: tChoice,
+    자기조절능력평균: averages.find(a=>a['척도(대분류)']==='자기조절능력')?.평균||0,
+    비교과수행능력평균: averages.find(a=>a['척도(대분류)']==='비교과수행능력')?.평균||0,
+    내면학업수행능력평균: averages.find(a=>a['척도(대분류)']==='내면학업수행능력')?.평균||0,
+    언어정보처리능력평균: averages.find(a=>a['척도(대분류)']==='언어정보처리능력')?.평균||0,
+    공학적사고력평균: averages.find(a=>a['척도(대분류)']==='공학적사고력')?.평균||0,
+    의약학적성평균: averages.find(a=>a['척도(대분류)']==='의약학적성')?.평균||0,
+    TypeB총점: totalB,
+    TypeC총점: totalC,
+    설문완료일시: completeAt
   };
+  surveyDB.push(row);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
 
-  const selfRegAvg    = getAvg('자기조절능력');
-  const nonClassAvg   = getAvg('비교과 수행능력');
-  const innerLearnAvg = getAvg('내면 학업수행능력');
-  const langProcAvg   = getAvg('언어정보처리능력');
-  const engThinkAvg   = getAvg('공학적 사고력');
-  const medSuitAvg    = getAvg('의약학적성');
+  // G) 워크북 생성 & 시트 추가
+  const wb = XLSX.utils.book_new();
 
-  // ─── 3) Type B·C 총점 계산 ───
-  const typeBTotal = typeBData.reduce((s,r)=> s + r.점수, 0);
-  const typeCTotal = typeCData.reduce((s,r)=> s + r.점수, 0);
+  // -- Type A 시트
+  const wsA = XLSX.utils.json_to_sheet(dataA, { header:['연번','척도(대분류)','응답'] });
+  XLSX.utils.sheet_add_json(wsA, averages, {
+    origin: dataA.length+1,
+    header:['척도(대분류)','평균']
+  });
+  XLSX.utils.book_append_sheet(wb, wsA, 'Type A');
 
-  // ─── 4) 타임스탬프 ───
-  const timestamp = new Date().toISOString();
+  // -- Type B 시트
+  const wsB = XLSX.utils.json_to_sheet(dataB, { header:['연번','응답','정답','정오'] });
+  XLSX.utils.sheet_add_aoa(wsB, [['총점', totalB]], { origin:-1 });
+  XLSX.utils.book_append_sheet(wb, wsB, 'Type B');
 
-  // ─── 5) 한 행(record) 생성 & 로컬 DB에 푸시 ───
-  const record = {
-    학생ID:              stuID,
-    학생성명:            nameVal,
-    출신학교:            schoolVal,
-    성별:                genderIdx,
-    거주지역:            regionIdx,
-    서울거주구:          seoulDistrictIdx,
-    특수학교:            specialSchoolIdx,
-    B등급과목수:        bIdx,
-    진학희망고교:        tIdx,
-    자기조절능력평균:    selfRegAvg,
-    비교과수행능력평균:  nonClassAvg,
-    내면학업수행능력평균:innerLearnAvg,
-    언어정보처리능력평균:langProcAvg,
-    공학적사고력평균:    engThinkAvg,
-    의약학적성평균:      medSuitAvg,
-    TypeB총점:          typeBTotal,
-    TypeC총점:          typeCTotal,
-    설문완료일시:        timestamp
-  };
-  dbRecords.push(record);
-  localStorage.setItem('surveyDB', JSON.stringify(dbRecords));
+  // -- Type C 시트
+  const wsC = XLSX.utils.json_to_sheet(dataC, { header:['연번','응답','정답','정오'] });
+  XLSX.utils.sheet_add_aoa(wsC, [['총점', totalC]], { origin:-1 });
+  XLSX.utils.book_append_sheet(wb, wsC, 'Type C');
 
-  // ─── 6) 엑셀 워크북에 DB 시트 추가 ───
-  wb.SheetNames.unshift('DB');  // 맨 앞에 붙이려면
-  wb.Sheets['DB'] = XLSX.utils.json_to_sheet(
-    dbRecords,
-    { header: [
-      '학생ID','학생성명','출신학교','성별','거주지역','서울거주구','특수학교',
-      'B등급과목수','진학희망고교',
-      '자기조절능력평균','비교과수행능력평균','내면학업수행능력평균',
-      '언어정보처리능력평균','공학적사고력평균','의약학적성평균',
-      'TypeB총점','TypeC총점','설문완료일시'
-    ]}
-  );
+  // -- DB 시트
+  const wsDB = XLSX.utils.json_to_sheet(surveyDB);
+  XLSX.utils.book_append_sheet(wb, wsDB, 'DB');
 
-  // ─── 7) 나머지 시트(개인정보, Type A/B/C) 생성 로직은 그대로 두고… ───
+  // -- Recent 시트
+  const wsRecent = XLSX.utils.json_to_sheet([row]);
+  XLSX.utils.book_append_sheet(wb, wsRecent, 'Recent');
 
-  // ─── 최종 엑셀 파일 생성 & 다운로드 링크 세팅 ───
-  createPersonalExcel(wb);
-  createDatabaseExcel();
-
+  // H) Blob 방식 다운로드
+  const binStr = XLSX.write(wb, { bookType:'xlsx', type:'binary' });
+  const buf    = new Uint8Array(binStr.length);
+  for (let i=0; i<binStr.length; ++i) buf[i] = binStr.charCodeAt(i);
+  const blob   = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url    = URL.createObjectURL(blob);
+  const dl     = document.getElementById('download-link');
+  dl.href      = url;
+  dl.download  = 'survey_result.xlsx';
 }
 
   /* ── 헬퍼 ───────────────────────────────────── */
@@ -737,46 +754,43 @@ wb.Sheets['Type C'] = XLSX.utils.json_to_sheet(typeCData);
 });
 
 
-function createPersonalExcel(wb) {
-  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([out], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  });
+function setDownloadLinks(wb) {
+  try {
+    // 1) 중복 시트 제거
+    const seen = new Set();
+    wb.SheetNames = wb.SheetNames.filter(name => {
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
 
-  const downloadLink = document.getElementById('download-link');
-  downloadLink.href = URL.createObjectURL(blob);
-  downloadLink.download = `survey_responses_${nameIn.value.trim()}.xlsx`;
-}
+    // 2) 바이너리 배열로 변환
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const buf = new Uint8Array(out).buffer;
 
+    // 3) Blob 하나만 생성
+    const blob = new Blob([buf], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url  = URL.createObjectURL(blob);
 
-function createDatabaseExcel() {
-  const dbRecords = JSON.parse(localStorage.getItem('surveyDB') || '[]');
-  const wb = XLSX.utils.book_new();
+    // 4) DOM에서 링크 요소 다시 조회
+    const nameInput    = document.getElementById('name');
+    const userName     = nameInput?.value.trim() || 'anonymous';
+    const downloadLink = document.getElementById('download-link');
+    const dbLink       = document.getElementById('db-download-link');
 
-  // DB 시트 작성
-  wb.SheetNames.push('DB');
-  wb.Sheets['DB'] = XLSX.utils.json_to_sheet(dbRecords, {
-    header: [
-      '학생ID','학생성명','출신학교','성별','거주지역','서울거주구','특수학교',
-      'B등급과목수','진학희망고교',
-      '자기조절능력평균','비교과수행능력평균','내면학업수행능력평균',
-      '언어정보처리능력평균','공학적사고력평균','의약학적성평균',
-      'TypeB총점','TypeC총점','설문완료일시'
-    ]
-  });
-
-  // 엑셀 파일 작성
-  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([out], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  });
-
-  // HTML 상에 있는 #db-download-link에 연결
-  const dbLink = document.getElementById('db-download-link');
-  if (dbLink) {
-    dbLink.href = URL.createObjectURL(blob);
-    dbLink.download = 'survey_database.xlsx';
-  } else {
-    console.warn('db-download-link 요소가 HTML에 존재하지 않습니다.');
+    // 5) 두 링크에 Blob URL 할당, 파일명만 다르게
+    if (downloadLink) {
+      downloadLink.href     = url;
+      downloadLink.download = `survey_result_${userName}.xlsx`;
+    }
+    if (dbLink) {
+      dbLink.href     = url;
+      dbLink.download = `survey_database_${userName}.xlsx`;
+    }
+  } catch (err) {
+    console.error('다운로드 링크 설정 중 오류:', err);
+    alert('엑셀 파일 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
   }
 }

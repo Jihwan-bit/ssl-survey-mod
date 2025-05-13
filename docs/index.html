@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>온라인 설문 슬라이드쇼</title>
+  <title>테스트용 설문 페이지</title>
   <style>
     html, body {
       margin: 0; padding: 0;
@@ -114,6 +114,27 @@
       text-decoration: none; border-radius: 4px; transition: .2s;
     }
     #download-link:hover { background: #388E3C; }
+
+     /* 디버그 버튼 고정 위치 */
+    #dev-buttons {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+    #dev-buttons button {
+      margin-left: 6px;
+      padding: 6px 12px;
+      font-size: 0.9em;
+      border: none;
+      background: #FF8F00;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #dev-buttons button:hover {
+      background: #E65100;
+    }
   </style>
 
   <!-- 외부 스크립트 -->
@@ -122,6 +143,12 @@
 </head>
 
 <body>
+  <!-- 디버그용: 최상단 고정 버튼 -->
+  <div id="dev-buttons">
+    <button id="dev-b">▶ Type B로 바로 이동</button>
+    <button id="dev-c">▶ Type C로 바로 이동</button>
+  </div>
+
   <div id="container">
     <!-- 1) 개인정보 입력 -->
     <div id="user-form">
@@ -235,8 +262,7 @@
     <!-- 3) 결과 화면 -->
     <div id="result" class="hidden">
       <h2>감사합니다!</h2>
-      <a id="download-link" href="#" download="survey_responses.xlsx">📥 개인 결과 다운로드</a>
-      <a id="db-download-link" href="#" download="survey_database.xlsx">📊 누적 DB 다운로드</a>
+      <a id="download-link" href="#" download="survey_result.xlsx">📥 최근 설문 및 DB 다운로드</a>
     </div>
   </div>
 
