@@ -526,7 +526,12 @@ function renderQuestionC() {
         `;
       });
 
-    html += `<button id="finishSurveyBtn" style="width:300px; margin-top:20px;"><strong>설문 완료</strong></button>`;
+    html += `<div style="text-align: center; margin-top: 20px;">
+    <button id="finishSurveyBtn" style="width: 600px;">
+    <strong>설문 완료</strong>
+    </button>
+    </div>`;
+    
     questionText.innerHTML = html;
     prevBtn.style.display = 'none';
     nextBtn.style.display = 'none';
