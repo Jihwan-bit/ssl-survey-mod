@@ -8,7 +8,7 @@
       margin: 0; padding: 0;
       width: 100vw; height: 100vh;
       display: flex; align-items: center; justify-content: center;
-      background: #F0F4C3; font-family: Arial, sans-serif;
+      background: #E3EAF5; font-family: Arial, sans-serif;
     }
     #container {
       box-sizing: border-box;
@@ -20,7 +20,7 @@
     h2 {
       margin-top: 0; font-size: 1.6em;
       border-bottom: 2px solid #DDD; padding-bottom: 8px;
-      color: #33691E;
+      color: #1A237E;
     }
     .filter-row {
       display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
@@ -33,7 +33,7 @@
     }
     .filter-group { margin-bottom: 16px; }
     .filter-group span {
-      font-weight: bold; margin-right: 8px; color: #33691E;
+      font-weight: bold; margin-right: 8px; color: #1A237E;
     }
     .pill {
       display: inline-block; margin: 4px 6px 4px 0;
@@ -42,20 +42,20 @@
       transition: .2s; user-select: none;
     }
     .pill.selected {
-      background: #AED581; color: #1B5E20; border-color: #7CB342;
+      background: #C5CAE9; color: #1A237E; border-color: #3F51B5;
     }
     #start {
       display: block; margin: 24px auto 0;
       padding: 12px 32px; font-size: 1.1em;
-      background: #8BC34A; color: #fff;
+      background: #5C6BC0; color: #fff;
       border: none; border-radius: 4px; cursor: pointer;
       transition: .2s;
     }
     #start:disabled {
-      background: #C8E6C9; cursor: not-allowed;
+      background: #D1C4E9; cursor: not-allowed;
     }
     #start:not(:disabled):hover {
-      background: #7CB342;
+      background: #8291ea;
     }
     .hidden { display: none; }
 
@@ -64,16 +64,16 @@
       margin-bottom: 12px; font-size: 1em; color: #555;
     }
     #personal-info {
-      font-size: 0.8em; color: #2E7D32;
+      font-size: 0.8em; color: #2b196d;
       margin-bottom: 12px; padding: 12px;
-      background: #E8F5E9; border: 1px solid #C8E6C9;
+      background: #ccd1eb; border: 1px solid #9092dc;
       border-radius: 4px;
     }
     .question {
-      font-size: 1.4em; color: #33691E; margin-bottom: 20px;
+      font-size: 1.4em; color: #1A237E; margin-bottom: 20px;
     }
     #total-timer, #segment-timer, #timer, #progress {
-      font-size: 1em; color: #C62828; margin-bottom: 10px;
+      font-size: 1em; color: #eb8181; margin-bottom: 10px;
     }
     .answers {
       display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
@@ -84,10 +84,10 @@
       transition: .2s;
     }
     .answers button:hover {
-      background: #F1F8E9; border-color: #AED581;
+      background: #E8EAF6; border-color: #000000;
     }
     .answers button.selected {
-      background: #8BC34A; color: #fff; border-color: #558B2F;
+      background: #3F51B5; color: #fff; border-color: #160e67;
     }
     #hint {
       font-size: 0.9em; color: #555; margin-bottom: 20px;
@@ -99,21 +99,21 @@
     #survey nav #prev { display: none; }
     #survey nav button {
       flex: 1; padding: 12px 20px; font-size: 1.2em;
-      background: #AED581; border: none;
-      border-radius: 4px; color: #1B5E20; transition: .2s;
+      background: #C5CAE9; border: none;
+      border-radius: 4px; color: #1A237E; transition: .2s;
     }
     #survey nav button:disabled {
-      background: #C8E6C9; cursor: not-allowed;
+      background: #D1C4E9; cursor: not-allowed;
     }
     #survey nav button:not(:disabled):hover {
-      background: #7CB342;
+      background: #303F9F;
     }
     #download-link {
       display: inline-block; margin-top: 20px; padding: 10px 20px;
-      background: #4CAF50; color: #fff;
+      background: #3949AB; color: #fff;
       text-decoration: none; border-radius: 4px; transition: .2s;
     }
-    #download-link:hover { background: #388E3C; }
+    #download-link:hover { background: #303F9F; }
 
      /* 디버그 버튼 고정 위치 */
     #dev-buttons {
@@ -135,6 +135,7 @@
     #dev-buttons button:hover {
       background: #E65100;
     }
+    
   </style>
 
   <!-- 외부 스크립트 -->
@@ -147,6 +148,7 @@
   <div id="dev-buttons">
     <button id="dev-b">▶ Type B로 바로 이동</button>
     <button id="dev-c">▶ Type C로 바로 이동</button>
+    <button id="dev-finish">▶ 설문 완료로 이동</button>
   </div>
 
   <div id="container">

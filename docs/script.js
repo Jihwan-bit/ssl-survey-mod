@@ -69,6 +69,18 @@ devB.addEventListener('click', () => {
    switchToTypeC();
  });
 
+ // ── 추가: 설문완료 버튼 핸들러 ─────────────────────────────────────────
+ const devFinish = document.getElementById('dev-finish');
+ devFinish.addEventListener('click', () => {
+  // Type A 응답을 모두 “3 (보통)”으로 설정
+  respA = respA.map(() => 3);
+  // Type B와 Type C 응답을 모두 “A” 로 설정
+  respB = respB.map(() => 'A');
+  respC = respC.map(() => 'A');
+  // 바로 설문 종료 & 결과 화면으로 이동
+  finishSurvey();
+  });
+
 
    // 1~6번 입력 완료 시에만 시작 버튼 활성화
   function validatePersonalInfo() {
@@ -219,12 +231,21 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
       .then(r=>r.arrayBuffer())
       .then(buf=>{
         const wb = XLSX.read(new Uint8Array(buf), {type:'array'});
-        questionsA = XLSX.utils.sheet_to_json(wb.Sheets['Type A'])
-          .map(r=>({no:r['연번'],q:r['문항'],p:r['지문'],A:r['(A)'],B:r['(B)'],C:r['(C)'],D:r['(D)']}));
+        questionsA = XLSX.utils.sheet_to_json(wb.Sheets['Type A'], {defval:''})
+        .map(r=>({
+          no:       r['연번'],
+          category: r['척도(대분류)'],   // ← 여기 추가
+          q:        r['문항'],
+          p:        r['지문'],
+          A:        r['(A)'],
+          B:        r['(B)'],
+          C:        r['(C)'],
+          D:        r['(D)'],
+        }));
         questionsB = XLSX.utils.sheet_to_json(wb.Sheets['Type B'])
-          .map(r=>({no:r['연번'],q:r['문항'],p:r['지문'],A:r['(A)'],B:r['(B)'],C:r['(C)'],D:r['(D)']}));
+          .map(r=>({no:r['연번'],q:r['문항'],p:r['지문'],A:r['(A)'],B:r['(B)'],C:r['(C)'],D:r['(D)'], correct: r['답'],}));
         questionsC = XLSX.utils.sheet_to_json(wb.Sheets['Type C'])
-          .map(r=>({no:r['연번'],q:r['문항'],p:r['지문'],A:r['(A)'],B:r['(B)'],C:r['(C)'],D:r['(D)']}));
+          .map(r=>({no:r['연번'],q:r['문항'],p:r['지문'],A:r['(A)'],B:r['(B)'],C:r['(C)'],D:r['(D)'], correct: r['답'],}));
         respA = Array(questionsA.length).fill(null);
         respB = Array(questionsB.length).fill(null);
         respC = Array(questionsC.length).fill(null);
@@ -584,30 +605,43 @@ function renderQuestionC() {
       const wb = XLSX.read(ab, { type: 'array' });
 
       // Type A: 연번, 척도(대분류), 문항
-      questionsA = XLSX.utils.sheet_to_json(wb.Sheets['Type A'], { defval: '' })
-        .map(r => ({
-          no:       r['연번'],
-          category: r['척도(대분류)'],
-          text:     r['문항']
-        }));
+      questionsA = XLSX.utils.sheet_to_json(wb.Sheets['Type A'], {defval: ''})
+      .map(r=>({
+        no:       r['연번'],
+        category: r['척도(대분류)'],  // ← 여기 추가
+        q:        r['문항'],
+        p:        r['지문'],
+        A:        r['(A)'],
+        B:        r['(B)'],
+        C:        r['(C)'],
+        D:        r['(D)'],
+      }));
 
       // Type B: 연번, 문항, 답, 선택지(A~D)
-      questionsB = XLSX.utils.sheet_to_json(wb.Sheets['Type B'], { defval: '' })
-        .map(r => ({
-          no:      r['연번'],
-          question:r['문항'],
-          correct: r['답'],
-          opts:    { A:r['(A)'], B:r['(B)'], C:r['(C)'], D:r['(D)'] }
-        }));
+      questionsB = XLSX.utils.sheet_to_json(wb.Sheets['Type B'], {defval: ''})
+      .map(r=>({
+        no:      r['연번'],
+        q:       r['문항'],
+        p:       r['지문'],
+        A:       r['(A)'],
+        B:       r['(B)'],
+        C:       r['(C)'],
+        D:       r['(D)'],
+        correct: r['답'],          // ← 여기 추가
+      }));
 
       // Type C: B와 동일 포맷
-      questionsC = XLSX.utils.sheet_to_json(wb.Sheets['Type C'], { defval: '' })
-        .map(r => ({
-          no:      r['연번'],
-          question:r['문항'],
-          correct: r['답'],
-          opts:    { A:r['(A)'], B:r['(B)'], C:r['(C)'], D:r['(D)'] }
-        }));
+      questionsC = XLSX.utils.sheet_to_json(wb.Sheets['Type C'], {defval: ''})
+      .map(r=>({
+        no:      r['연번'],
+        q:       r['문항'],
+        p:       r['지문'],
+        A:       r['(A)'],
+        B:       r['(B)'],
+        C:       r['(C)'],
+        D:       r['(D)'],
+        correct: r['답'],          // ← 여기 추가
+      }));
 
       // 응답 배열 초기화: 질문 개수에 맞게 null 채우기
       respA = Array(questionsA.length).fill(null);
@@ -641,11 +675,32 @@ function finishSurvey() {
   const regionOpts = Array.from(regionIn.options).filter(o=>o.value);
   const sortedRegions = regionOpts.map(o=>o.text).sort((a,b)=>a.localeCompare(b,'ko'));
   const regionCode = sortedRegions.indexOf(regionIn.selectedOptions[0].text);
-  let districtCode=-1, specialSchool=0;
-  if(regionIn.value==='서울 특별시') {
-    districtCode = subPills.findIndex(p=>p.classList.contains('selected'));
-    // TODO: 특수학교 판단 로직
+
+  let districtCode = -1;
+  let specialSchool = 0;
+  if (regionIn.value === '서울 특별시') {
+    // 1) 선택된 권역
+    const selPill = subPills.find(p => p.classList.contains('selected'));
+    const district = selPill ? selPill.dataset.value : null;
+    // 2) 권역 인덱스
+    districtCode = subPills.findIndex(p => p.classList.contains('selected'));
+    // 3) 특수학교 여부
+    if (district && district !== '기타 지역') {
+      // 각 권역별 중학교 리스트
+      const specialMap = {
+        '강남': ['단대부중','역삼중','도곡중','대명중','대청중','숙명여중','휘문중'],
+        '서초': ['원촌중','서초중','반포중','세화여중'],
+        '송파': ['잠실중','송례중','풍납중'],
+        '목동': ['목동중','목일중','신목중','월촌중','양정중','목운중'],
+        '중계': ['중계중','상명중','불암중','을지중']
+      };
+      const selectedMS = msSelect.value;  // “4-2. 출신 중학교” select 값
+      if (specialMap[district] && specialMap[district].includes(selectedMS)) {
+        specialSchool = 1;
+      }
+    }
   }
+
   const schoolVal = schoolIn.value || 'N/A';
   const bCount    = bPills.findIndex(p=>p.classList.contains('selected'));
   const tChoice   = tPills.findIndex(p=>p.classList.contains('selected'));
@@ -701,10 +756,10 @@ function finishSurvey() {
     B등급과목수: bCount,
     진학희망고교: tChoice,
     자기조절능력평균: averages.find(a=>a['척도(대분류)']==='자기조절능력')?.평균||0,
-    비교과수행능력평균: averages.find(a=>a['척도(대분류)']==='비교과수행능력')?.평균||0,
+    비교과수행능력평균: averages.find(a=>a['척도(대분류)']==='비교과활동수행력')?.평균||0,
     내면학업수행능력평균: averages.find(a=>a['척도(대분류)']==='내면학업수행능력')?.평균||0,
     언어정보처리능력평균: averages.find(a=>a['척도(대분류)']==='언어정보처리능력')?.평균||0,
-    공학적사고력평균: averages.find(a=>a['척도(대분류)']==='공학적사고력')?.평균||0,
+    공학적사고력평균:   averages.find(a=>a['척도(대분류)']==='공학적 사고력')?.평균||0,
     의약학적성평균: averages.find(a=>a['척도(대분류)']==='의약학적성')?.평균||0,
     TypeB총점: totalB,
     TypeC총점: totalC,
