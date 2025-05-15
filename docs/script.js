@@ -1,6 +1,7 @@
 // script.js
 
 window.addEventListener('DOMContentLoaded', () => {
+
   /* ── 상수 ───────────────────────────────────────── */
   const TOTAL_LIMIT = 90 * 60;   // 전체 제한 시간 90분
   const A_Q_SEC     = 10;        // Type A: 10초/문항
@@ -48,6 +49,99 @@ window.addEventListener('DOMContentLoaded', () => {
   const prevBtn         = document.getElementById('prev');
   const nextBtn         = document.getElementById('next');
   const downloadLink    = document.getElementById('download-link');
+
+  // ⇨ ➊ 요소 참조 및 상태 변수 선언
+  const codeForm    = document.getElementById('code-form');       // 코드 입력 폼
+  const codeInput   = document.getElementById('stu-code');        // 코드 입력 필드
+  const codeSubmit  = document.getElementById('code-submit');     // 확인 버튼
+  const codeMessage = document.getElementById('code-message');    // 메시지 영역
+  const usedDL      = document.getElementById('used-download-link'); // 사용 코드 다운로드 링크
+
+  let validCodes = [];   // stu_codes.xlsx로부터 로드된 유효 코드 목록
+  let usedCodes  = [];   // used_stu_codes.xlsx로부터 로드된 이미 사용된 코드 목록
+  let currentCode = '';  // 현재 입력된 코드
+
+  // ⇨ ➊′ 코드 목록 로드 (버튼 참조 이후)
+  loadCodeLists();
+
+  // ⇨ ➋ 코드 목록 로드 함수 정의
+  function loadCodeLists() {
+  codeSubmit.disabled = true;  
+  codeMessage.textContent = '코드 목록 불러오는 중…';
+  Promise.all([
+    fetch('MRT_stu_codes_0515.xlsx').then(r => {
+      if (!r.ok) throw new Error(`stu codes not found (${r.status})`);
+      return r.arrayBuffer();
+    }),
+    fetch('used_stu_codes.xlsx')
+      .then(r => r.ok ? r.arrayBuffer() : null)
+      .catch(() => null)
+  ])
+  .then(([stuBuf, usedBuf]) => {
+    // ── 유효 코드 로드 ─────────────────────────────
+    const wb = XLSX.read(new Uint8Array(stuBuf), { type:'array' });
+    const sheetValid = wb.SheetNames.includes('Recent')
+      ? 'Recent'
+      : wb.SheetNames[0];
+    const dataValid = XLSX.utils.sheet_to_json(wb.Sheets[sheetValid], { header:1 });
+    validCodes = dataValid.slice(1)
+                          .map(r => String(r[0]).trim())
+                          .filter(Boolean);
+    console.log('✅ validCodes loaded:', validCodes);
+
+    // ── 이미 사용된 코드 로드 ────────────────────────
+    if (usedBuf) {
+      const wbUsed = XLSX.read(new Uint8Array(usedBuf), { type:'array' });
+      const sheetUsed = wbUsed.SheetNames.includes('UsedCodes')
+        ? 'UsedCodes'
+        : wbUsed.SheetNames[0];
+      const dataUsed = XLSX.utils.sheet_to_json(wbUsed.Sheets[sheetUsed], { header:1 });
+      usedCodes = dataUsed.slice(1)
+                          .map(r => String(r[0]).trim())
+                          .filter(Boolean);
+    } else {
+      usedCodes = [];
+    }
+    console.log('🔄 usedCodes loaded:', usedCodes);
+
+    codeMessage.textContent = '';
+    codeSubmit.disabled = false;
+  })
+  .catch(e => {
+    console.error('❌ loadCodeLists error:', e);
+    codeMessage.textContent = '코드 목록 로딩 실패: ' + e.message;
+    codeSubmit.disabled = true;
+  });
+}
+
+
+
+  // ⇨ ➌ 코드 입력 검증 처리
+  codeSubmit.addEventListener('click', e => {
+    e.preventDefault();                   // ← 폼 제출(새로고침) 막기
+    const code = codeInput.value.trim();
+    
+    // -- 길이 검사
+    if (code.length !== 7) {
+      codeMessage.textContent = '7자리 코드를 입력하세요.';
+      return;
+    }
+    // -- 유효 코드인지 확인
+    if (!validCodes.includes(code)) {
+      codeMessage.textContent = '유효하지 않은 코드입니다.';
+      return;
+    }
+    // -- 중복 입력인지 확인
+    if (usedCodes.includes(code)) {
+      codeMessage.textContent = '이전에 이미 사용한 코드입니다.';
+      return;
+    }
+    // ✔ 검증 통과
+    currentCode = code;
+    usedCodes.push(code);
+    codeForm.classList.add('hidden');   // 코드 폼 숨김
+    userForm.classList.remove('hidden'); // 개인정보 폼 표시
+  });
 
   // ── 디버그 버튼 핸들러 (설문 시작 후에만 눌러주세요) ─────────────────────
 devB.addEventListener('click', () => {
@@ -668,6 +762,13 @@ function finishSurvey() {
   surveyDiv.classList.add('hidden');
   resultDiv.classList.remove('hidden');
 
+  // ── A) 설문 완료 시점에 코드 사용 등록 ───────────────────
+  // currentCode 가 유효하고, 아직 usedCodes 에 없다면 추가
+  if (currentCode && !usedCodes.includes(currentCode)) {
+    usedCodes.push(currentCode);
+    console.log('✔ 코드 사용 등록:', currentCode);
+  }
+
   // B) 개인 정보 수집
   const nameVal    = nameIn.value || 'N/A';
   const genderMap  = { '남자':0, '여자':1 };
@@ -806,6 +907,22 @@ function finishSurvey() {
   const dl     = document.getElementById('download-link');
   dl.href      = url;
   dl.download  = 'survey_result.xlsx';
+
+ // ── 사용된 코드 엑셀 생성 ─────────────────────────────
+const wbUsedOut = XLSX.utils.book_new();
+const wsUsed    = XLSX.utils.aoa_to_sheet([
+  ['code'],
+  ...usedCodes.map(c => [c])
+]);
+XLSX.utils.book_append_sheet(wbUsedOut, wsUsed, 'UsedCodes');
+const out2  = XLSX.write(wbUsedOut, { bookType:'xlsx', type:'array' });
+const blob2 = new Blob([out2], {
+  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+});
+usedDL.href     = URL.createObjectURL(blob2);
+usedDL.download = 'used_stu_codes.xlsx';
+// ──────────────────────────────────────────────────────
+
 }
 
   /* ── 헬퍼 ───────────────────────────────────── */

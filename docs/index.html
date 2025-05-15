@@ -152,8 +152,21 @@
   </div>
 
   <div id="container">
+    <!-- ■ 7자리 코드 입력 폼: 페이지 진입 전 코드 검증용 -->
+    <div id="code-form">
+      <div style="text-align: center;">
+      <h2><strong>📥 사전에 안내 받은 7자리 코드를 입력해주세요!</strong></h2>
+      <!-- 7자리 코드 입력 필드 -->
+      <input type="text" id="stu-code" maxlength="7" placeholder="7자리 코드" />
+      <!-- 검증 버튼 -->
+      <button id="code-submit" type="button">확인</button>
+      <!-- 에러 및 안내 메시지 표시 영역 -->
+      <div id="code-message" style="color:red; margin-top:8px;"></div>
+      </div>
+    </div>
+
     <!-- 1) 개인정보 입력 -->
-    <div id="user-form">
+    <div id="user-form" class="hidden">
       <div style="font-size:1.1em; background:#FFFDE7; padding:16px; border-left:6px solid #FBC02D; margin-bottom:16px; color:#5D4037;">
         📋 본 설문은 총 3단계로 구성되어 있으며, 최대 소요 시간은 <strong>90분</strong>입니다.<br><br>
         1️⃣ <strong>Type A</strong>: 성향 검사 – 총 240문항, 약 40분<br>
@@ -262,10 +275,24 @@
     </div>
 
     <!-- 3) 결과 화면 -->
-    <div id="result" class="hidden">
-      <h2>감사합니다!</h2>
-      <a id="download-link" href="#" download="survey_result.xlsx">📥 최근 설문 및 DB 다운로드</a>
-    </div>
+      <!-- 3) 결과 화면 -->
+  <div id="result" class="hidden">
+    <h2>감사합니다!</h2>
+    <!-- 기존 설문 결과 다운로드 링크 -->
+    <a id="download-link"
+       href="#"
+       download="survey_result.xlsx">
+      📥 최근 설문 및 DB 다운로드
+    </a>
+    <!-- 추가: 사용된 코드 다운로드 링크 -->
+    <a id="used-download-link"
+       href="#"
+       download="used_stu_codes.xlsx"
+       style="margin-left:12px;">
+      📥 사용된 코드 다운로드
+    </a>
+  </div>
+
   </div>
 
   <!-- inline 스크립트: 4번 동적 처리 & start 버튼 활성화 -->
