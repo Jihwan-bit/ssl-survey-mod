@@ -914,20 +914,31 @@ blob.arrayBuffer().then(buffer => {
     new Uint8Array(buffer)
       .reduce((data, byte) => data + String.fromCharCode(byte), '')
   );
+  console.log('▶ GitHub 업로드 시작', nameVal, completeAt);
+
+
   // GitHub 업로드 요청
   fetch('/api/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      path: `responses/survey_result_${userName}.xlsx`,
-      contentBase64: base64,
-      commitMessage: `Survey result for ${userName} at ${completeAt}`
+      path: `responses/survey_result_${nameVal.replace(/\s+/g,'_')}.xlsx`,
+      commitMessage: `Survey result for ${nameVal} at ${completeAt}`
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    console.log('▶ /api/upload 응답 status:', res.status);
+    res.json()})
+
   .then(({ rawUrl }) => {
+    
     // 다운로드 링크를 GitHub raw URL로 교체
     dl.href = rawUrl;
+
+    if (error) {
+      console.error('GitHub 업로드 중 에러:', error);
+      return;
+    }
   })
   .catch(err => console.error('GitHub 업로드 실패:', err));
 });

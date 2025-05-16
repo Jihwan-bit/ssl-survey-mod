@@ -19,17 +19,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50mb' }));
 
 // 3) 정적 파일 제공 — 클라이언트 페이지(script.js, index.html 등)
-app.use(express.static(path.join(__dirname, '../public')));
-
-
-const express = require('express');
-const path    = require('path');
-const XLSX    = require('xlsx');
-const fs      = require('fs');
 
 
 // 1) 정적 파일 제공
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'docs')));
 app.use(express.json());
 
 // 2) Question_List.xlsx 읽어서 질문 배열로 변환
@@ -86,7 +79,7 @@ app.post('/api/submit', (req, res) => {
   XLSX.utils.book_append_sheet(wb, ws, 'Responses');
 
   // 파일 쓰기
-  const dir      = path.join(__dirname, 'public', 'responses');
+  const dir      = path.join(__dirname, 'docs', 'responses');
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const fname    = `response_${Date.now()}.xlsx`;
   const fpath    = path.join(dir, fname);
