@@ -907,7 +907,30 @@ function finishSurvey() {
   const url    = URL.createObjectURL(blob);
   const dl     = document.getElementById('download-link');
   dl.href      = url;
-  dl.download  = 'survey_result.xlsx';
+  // H) Blob 방식 다운로드 직후에 추가
+blob.arrayBuffer().then(buffer => {
+  // ArrayBuffer → Base64
+  const base64 = btoa(
+    new Uint8Array(buffer)
+      .reduce((data, byte) => data + String.fromCharCode(byte), '')
+  );
+  // GitHub 업로드 요청
+  fetch('/api/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      path: `responses/survey_result_${userName}.xlsx`,
+      contentBase64: base64,
+      commitMessage: `Survey result for ${userName} at ${completeAt}`
+    })
+  })
+  .then(res => res.json())
+  .then(({ rawUrl }) => {
+    // 다운로드 링크를 GitHub raw URL로 교체
+    dl.href = rawUrl;
+  })
+  .catch(err => console.error('GitHub 업로드 실패:', err));
+});
 
  // ── 사용된 코드 엑셀 생성 ─────────────────────────────
 const wbUsedOut = XLSX.utils.book_new();
