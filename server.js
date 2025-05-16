@@ -1,5 +1,19 @@
 // server.js
 
+import { uploadFile } from './githubApi.js';
+
+app.post('/api/upload', async (req, res) => {
+  const { path, content, commitMessage } = req.body;
+  try {
+    const result = await uploadFile(path, content, commitMessage);
+    res.json({ rawUrl: result.content.download_url });
+  } catch (err) {
+    console.error('upload error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 const express = require('express');
 const fs      = require('fs');
 const path    = require('path');
@@ -52,7 +66,7 @@ app.post('/api/save-codes', (req, res) => {
 
 // ─── (선택) 정적 파일 제공 ─────────────────────────────
 // 클라이언트(index.html, script.js, .xlsx 등)가 docs/ 폴더에 있을 경우:
-// app.use(express.static(path.join(__dirname, 'docs')));
+app.use(express.static(path.join(__dirname, 'docs')));
 
 app.listen(PORT, () => {
   console.log(`▶ Server running at http://localhost:${PORT}`);

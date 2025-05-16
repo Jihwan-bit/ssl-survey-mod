@@ -941,13 +941,7 @@ function finishSurvey() {
   dl.href      = url;
   // H) Blob 방식 다운로드 직후에 추가
 blob.arrayBuffer().then(buffer => {
-  // ArrayBuffer → Base64
-  const base64 = btoa(
-    new Uint8Array(buffer)
-      .reduce((data, byte) => data + String.fromCharCode(byte), '')
-  );
   console.log('▶ GitHub 업로드 시작', nameVal, completeAt);
-
 
   // GitHub 업로드 요청
   fetch('/api/upload', {
@@ -958,6 +952,7 @@ blob.arrayBuffer().then(buffer => {
       commitMessage: `Survey result for ${nameVal} at ${completeAt}`
     })
   })
+
   .then(res => {
     console.log('▶ /api/upload 응답 status:', res.status);
     res.json()})
@@ -986,9 +981,25 @@ const out2  = XLSX.write(wbUsedOut, { bookType:'xlsx', type:'array' });
 const blob2 = new Blob([out2], {
   type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 });
-usedDL.href     = URL.createObjectURL(blob2);
-usedDL.download = 'used_stu_codes.xlsx';
+
+if (usedDL) {
+  usedDL.href   = URL.createObjectURL(blob2);
+  usedDL.download = 'used_stu_codes.xlsx';
+}
 // ──────────────────────────────────────────────────────
+// 설문 결과 서버 저장
+fetch('/api/save-survey', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ surveyDB })
+});
+
+// 사용된 코드 서버 저장
+fetch('/api/save-codes', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ usedCodes })
+});
 
 }
 
