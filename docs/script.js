@@ -22,8 +22,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const resultDiv       = document.getElementById('result');
 
   const startBtn        = document.getElementById('start');
-  const devB            = document.getElementById('dev-b');
-  const devC            = document.getElementById('dev-c');
+  //const devB            = document.getElementById('dev-b');
+  //const devC            = document.getElementById('dev-c');
 
   const nameIn          = document.getElementById('name');
   const schoolIn        = document.getElementById('school');
@@ -144,36 +144,36 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── 디버그 버튼 핸들러 (설문 시작 후에만 눌러주세요) ─────────────────────
-devB.addEventListener('click', () => {
-   // Type A 응답을 모두 “3 (보통)”으로
-   respA = respA.map(() => 3);
-   // Type A 소요시간(240문항×10초)을 모두 소모했다고 설정
-   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
-   switchToTypeB();
- });
+//devB.addEventListener('click', () => {
+//   // Type A 응답을 모두 “3 (보통)”으로
+//   respA = respA.map(() => 3);
+//   // Type A 소요시간(240문항×10초)을 모두 소모했다고 설정
+//   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
+//   switchToTypeB();
+// });
 
- devC.addEventListener('click', () => {
-   // Type A 응답을 모두 “3 (보통)”
-   respA = respA.map(() => 3);
-   // Type B 설문을 스킵했으니 모두 “A” 로
-   respB = respB.map(() => 'A');
-   // Type A + Type B 소요시간(240×10초 + 10×60초)을 모두 소모했다고 설정
-   startTime = Date.now()
-     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
-   switchToTypeC();
- });
+// devC.addEventListener('click', () => {
+//   // Type A 응답을 모두 “3 (보통)”
+//   respA = respA.map(() => 3);
+//   // Type B 설문을 스킵했으니 모두 “A” 로
+//   respB = respB.map(() => 'A');
+//   // Type A + Type B 소요시간(240×10초 + 10×60초)을 모두 소모했다고 설정
+//   startTime = Date.now()
+//     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
+//   switchToTypeC();
+// });
 
  // ── 추가: 설문완료 버튼 핸들러 ─────────────────────────────────────────
- const devFinish = document.getElementById('dev-finish');
- devFinish.addEventListener('click', () => {
+// const devFinish = document.getElementById('dev-finish');
+// devFinish.addEventListener('click', () => {
   // Type A 응답을 모두 “3 (보통)”으로 설정
-  respA = respA.map(() => 3);
+//  respA = respA.map(() => 3);
   // Type B와 Type C 응답을 모두 “A” 로 설정
-  respB = respB.map(() => 'A');
-  respC = respC.map(() => 'A');
+//  respB = respB.map(() => 'A');
+//  respC = respC.map(() => 'A');
   // 바로 설문 종료 & 결과 화면으로 이동
-  finishSurvey();
-  });
+//  finishSurvey();
+//  });
 
 
    // 1~6번 입력 완료 시에만 시작 버튼 활성화
@@ -223,14 +223,14 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
   // 1) 서울 ↔ 중학교 토글
   regionIn.addEventListener('change', () => {
   if (regionIn.value === '서울 특별시') {
-    subregionGroup.classList.remove('hidden');
-    middleschoolGroup.classList.add('hidden');
+    subRgGrp.classList.remove('hidden');
+    msGrp.classList.add('hidden');
     schoolIn.classList.add('hidden');
-    middleschool.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+    msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
   } else {
-    subregionGroup.classList.add('hidden');
-    middleschoolGroup.classList.add('hidden');
-    middleschool.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+    subRgGrp.classList.add('hidden');
+    msGrp.classList.add('hidden');
+    msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
     schoolIn.classList.remove('hidden');
   }
   validatePersonalInfo();
@@ -311,10 +311,11 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
     // 2) 중학교 필드 결정
     let middleSchoolValue = '';
     if (regionIn.value === '서울 특별시' && district && district !== '기타 지역') {
-      middleSchoolValue = middleschool.value || '';
-    } else {
-      middleSchoolValue = schoolIn.value.trim();
-    }
+     // 여기서 msSelect.value 를 써야 합니다
+     middleSchoolValue = msSelect.value || '';
+   } else {
+     middleSchoolValue = schoolIn.value.trim();
+   }
     
     // 3) 요약문 갱신
     personalInfoDiv.textContent =
@@ -745,9 +746,9 @@ function renderQuestionC() {
 }
 
 // Initialize survey after questions are loaded
-document.addEventListener('DOMContentLoaded', () => {
-  loadQuestions().then(() => startSurvey());
-});
+//document.addEventListener('DOMContentLoaded', () => {
+//  loadQuestions().then(() => startSurvey());
+//});
 
 // Global survey database loaded from localStorage
 // 3) 전역 DB 로딩
