@@ -1,11 +1,32 @@
 // server.js
+// 1) .env 읽어오기 (가장 먼저)
+import 'dotenv/config';
+
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { getFileSha, uploadFile } from './githubApi.js';
+
+// __dirname 설정 (ES Module 환경)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// 2) Express 앱 생성 & 미들웨어 설정
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// JSON 바디 파싱 (GitHub 업로드용 Base64 페이로드 처리)
+app.use(express.json({ limit: '50mb' }));
+
+// 3) 정적 파일 제공 — 클라이언트 페이지(script.js, index.html 등)
+app.use(express.static(path.join(__dirname, '../public')));
+
+
 const express = require('express');
 const path    = require('path');
 const XLSX    = require('xlsx');
 const fs      = require('fs');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
 
 // 1) 정적 파일 제공
 app.use(express.static(path.join(__dirname, 'public')));
@@ -74,6 +95,34 @@ app.post('/api/submit', (req, res) => {
   // URL 반환
   const fileUrl = `${req.protocol}://${req.get('host')}/responses/${fname}`;
   res.json({ fileUrl });
+});
+
+// 5) **새로운 GitHub 업로드 API**  
+//    클라이언트에서 Base64 문자열을 받아 GitHub에 커밋하고
+//    커밋된 raw URL을 JSON으로 돌려줍니다.
+app.post('/api/upload', async (req, res) => {
+  const { path: filePath, contentBase64, commitMessage } = req.body;
+  
+  if (!filePath || !contentBase64 || !commitMessage) {
+    return res.status(400).json({ error: 'path, contentBase64, commitMessage 모두 필요합니다.' });
+  }
+
+  try {
+    const result = await uploadFile(filePath, contentBase64, commitMessage);
+    // result.content.download_url 에도 URL이 담겨 있지만,
+    // raw.githubusercontent 형식으로 직접 만들어 드릴 수도 있습니다.
+    const rawUrl = `https://raw.githubusercontent.com/`
+      + `${process.env.OWNER}/${process.env.REPO}/${process.env.BRANCH}/`
+      + `${encodeURIComponent(filePath)}`;
+
+    return res.json({
+      sha:    result.content.sha,
+      rawUrl
+    });
+  } catch (err) {
+    console.error('GitHub 업로드 실패:', err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // 5) 서버 시작
