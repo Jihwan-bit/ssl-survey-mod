@@ -145,11 +145,11 @@
 
 <body>
   <!-- 디버그용: 최상단 고정 버튼 -->
-  <!-- <div id="dev-buttons">
+  <div id="dev-buttons">
     <button id="dev-b">▶ Type B로 바로 이동</button>
     <button id="dev-c">▶ Type C로 바로 이동</button>
     <button id="dev-finish">▶ 설문 완료로 이동</button>
-  </div> -->
+  </div>
 
   <div id="container">
     <!-- ■ 7자리 코드 입력 폼: 페이지 진입 전 코드 검증용 -->
@@ -161,6 +161,12 @@
       <!-- 검증 버튼 -->
       <button id="code-submit" type="button">확인</button>
       <!-- 에러 및 안내 메시지 표시 영역 -->
+       <!-- 개발용: 사용된 코드 초기화 버튼 -->
+    <button type="button"
+            id="clear-codes-btn"
+            style="margin-left:1rem; background:#fdd; color:#900; border:none; padding:0.5rem;">
+      디버그: 사용된 코드 삭제
+    </button>
       <div id="code-message" style="color:red; margin-top:8px;"></div>
       </div>
     </div>

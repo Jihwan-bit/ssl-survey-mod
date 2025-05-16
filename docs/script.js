@@ -22,8 +22,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const resultDiv       = document.getElementById('result');
 
   const startBtn        = document.getElementById('start');
-  //const devB            = document.getElementById('dev-b');
-  //const devC            = document.getElementById('dev-c');
+  const devB            = document.getElementById('dev-b');
+  const devC            = document.getElementById('dev-c');
 
   const nameIn          = document.getElementById('name');
   const schoolIn        = document.getElementById('school');
@@ -56,6 +56,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const codeSubmit  = document.getElementById('code-submit');     // 확인 버튼
   const codeMessage = document.getElementById('code-message');    // 메시지 영역
   const usedDL      = document.getElementById('used-download-link'); // 사용 코드 다운로드 링크
+  
+  // DOMContentLoaded 직후 또는 전역 스코프에서
+  const clearBtn = document.getElementById('clear-codes-btn');
 
   let validCodes = [];   // stu_codes.xlsx로부터 로드된 유효 코드 목록
   let usedCodes  = [];   // used_stu_codes.xlsx로부터 로드된 이미 사용된 코드 목록
@@ -66,55 +69,63 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // ⇨ ➋ 코드 목록 로드 함수 정의
   function loadCodeLists() {
-  codeSubmit.disabled = true;  
+  codeSubmit.disabled = true;
   codeMessage.textContent = '코드 목록 불러오는 중…';
-  Promise.all([
-    fetch('MRT_stu_codes_0515.xlsx').then(r => {
+
+  // (A) surveyDB에서 실제 사용된 코드 목록 추출
+  const surveyDB = JSON.parse(localStorage.getItem('surveyDB') || '[]');
+  const localUsed = surveyDB.map(r => r['사용한코드'] || '');
+  console.log('▶ surveyDB 기반 usedCodes:', localUsed);
+
+  // ── (B) 유효 코드만 서버에서 로드
+  fetch('MRT_stu_codes_0515.xlsx')
+    .then(r => {
       if (!r.ok) throw new Error(`stu codes not found (${r.status})`);
       return r.arrayBuffer();
-    }),
-    fetch('used_stu_codes.xlsx')
-      .then(r => r.ok ? r.arrayBuffer() : null)
-      .catch(() => null)
-  ])
-  .then(([stuBuf, usedBuf]) => {
-    // ── 유효 코드 로드 ─────────────────────────────
-    const wb = XLSX.read(new Uint8Array(stuBuf), { type:'array' });
-    const sheetValid = wb.SheetNames.includes('Recent')
-      ? 'Recent'
-      : wb.SheetNames[0];
-    const dataValid = XLSX.utils.sheet_to_json(wb.Sheets[sheetValid], { header:1 });
-    validCodes = dataValid.slice(1)
-                          .map(r => String(r[0]).trim())
-                          .filter(Boolean);
-    console.log('✅ validCodes loaded:', validCodes);
+    })
+    .then(stuBuf => {
+     // 1) 바이너리 → 워크북
+     const wb = XLSX.read(new Uint8Array(stuBuf), { type: 'array' });
+     // 2) 첫 번째 시트 선택
+     const sheet = wb.Sheets[wb.SheetNames[0]];
+     // 3) 시트를 2차원 배열로 변환 (header 포함)
+     const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+     // 4) 헤더 제외 후, 첫 열(code)만 뽑아서 대문자·trim
+     validCodes = rows
+       .slice(1)
+       .map(r => String(r[0]).trim())
+       .filter(c => c.length === 7);
+     console.log('🔍 validCodes 로드됨:', validCodes);
+      // … 기존 validCodes 로딩 코드 그대로 …
+      // ── (C) usedCodes 는 로컬스토리지 기준으로만 세팅
+      usedCodes = localUsed;
+      console.log('🔄 usedCodes set from surveyDB:', usedCodes);
 
-    // ── 이미 사용된 코드 로드 ────────────────────────
-    if (usedBuf) {
-      const wbUsed = XLSX.read(new Uint8Array(usedBuf), { type:'array' });
-      const sheetUsed = wbUsed.SheetNames.includes('UsedCodes')
-        ? 'UsedCodes'
-        : wbUsed.SheetNames[0];
-      const dataUsed = XLSX.utils.sheet_to_json(wbUsed.Sheets[sheetUsed], { header:1 });
-      usedCodes = dataUsed.slice(1)
-                          .map(r => String(r[0]).trim())
-                          .filter(Boolean);
-    } else {
-      usedCodes = [];
-    }
-    console.log('🔄 usedCodes loaded:', usedCodes);
-
-    codeMessage.textContent = '';
-    codeSubmit.disabled = false;
-  })
-  .catch(e => {
-    console.error('❌ loadCodeLists error:', e);
-    codeMessage.textContent = '코드 목록 로딩 실패: ' + e.message;
-    codeSubmit.disabled = true;
-  });
+      codeMessage.textContent = '';
+      codeSubmit.disabled = false;
+    })
+    .catch(e => {
+      console.error('❌ loadCodeLists error:', e);
+      codeMessage.textContent = '코드 목록 로딩 실패: ' + e.message;
+      codeSubmit.disabled = true;
+    });
 }
 
+clearBtn.addEventListener('click', () => {
+  // 1) 로컬스토리지에서 surveyDB, usedCodes 제거
+  localStorage.removeItem('surveyDB');
+  localStorage.removeItem('usedCodes');
 
+  // 2) 메모리 변수도 초기화
+  usedCodes = [];
+  surveyDB = [];
+
+  // 3) UI 리셋
+  codeInput.value = '';
+  codeMessage.textContent = '⚙️ 사용된 코드가 삭제되었습니다. 새로고침 후 테스트하세요.';
+  
+  console.log('🗑️ 사용된 코드 및 설문 DB 초기화 완료');
+});
 
   // ⇨ ➌ 코드 입력 검증 처리
   codeSubmit.addEventListener('click', e => {
@@ -133,47 +144,50 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     // -- 중복 입력인지 확인
     if (usedCodes.includes(code)) {
-      codeMessage.textContent = '이전에 이미 사용한 코드입니다.';
+      codeMessage.textContent = '유효하지만 이미 사용된 코드입니다. 설문을 진행할 수 없습니다.';
       return;
     }
-    // ✔ 검증 통과
-    currentCode = code;
-    usedCodes.push(code);
-    codeForm.classList.add('hidden');   // 코드 폼 숨김
-    userForm.classList.remove('hidden'); // 개인정보 폼 표시
+// ✔ 검증 통과
+currentCode = code;
+
+ // → 코드 사용 등록은 설문 완료 시점으로 연기!
+ //    그냥 화면 전환만 수행합니다.
+ codeForm.classList.add('hidden');
+ userForm.classList.remove('hidden');
+ codeMessage.textContent = '';
   });
 
   // ── 디버그 버튼 핸들러 (설문 시작 후에만 눌러주세요) ─────────────────────
-//devB.addEventListener('click', () => {
+devB.addEventListener('click', () => {
 //   // Type A 응답을 모두 “3 (보통)”으로
-//   respA = respA.map(() => 3);
+   respA = respA.map(() => 3);
 //   // Type A 소요시간(240문항×10초)을 모두 소모했다고 설정
-//   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
-//   switchToTypeB();
-// });
+   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
+   switchToTypeB();
+ });
 
-// devC.addEventListener('click', () => {
+ devC.addEventListener('click', () => {
 //   // Type A 응답을 모두 “3 (보통)”
-//   respA = respA.map(() => 3);
+   respA = respA.map(() => 3);
 //   // Type B 설문을 스킵했으니 모두 “A” 로
-//   respB = respB.map(() => 'A');
+   respB = respB.map(() => 'A');
 //   // Type A + Type B 소요시간(240×10초 + 10×60초)을 모두 소모했다고 설정
-//   startTime = Date.now()
-//     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
-//   switchToTypeC();
-// });
+   startTime = Date.now()
+     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
+   switchToTypeC();
+ });
 
  // ── 추가: 설문완료 버튼 핸들러 ─────────────────────────────────────────
-// const devFinish = document.getElementById('dev-finish');
-// devFinish.addEventListener('click', () => {
+ const devFinish = document.getElementById('dev-finish');
+ devFinish.addEventListener('click', () => {
   // Type A 응답을 모두 “3 (보통)”으로 설정
-//  respA = respA.map(() => 3);
+  respA = respA.map(() => 3);
   // Type B와 Type C 응답을 모두 “A” 로 설정
-//  respB = respB.map(() => 'A');
-//  respC = respC.map(() => 'A');
+  respB = respB.map(() => 'A');
+  respC = respC.map(() => 'A');
   // 바로 설문 종료 & 결과 화면으로 이동
-//  finishSurvey();
-//  });
+  finishSurvey();
+  });
 
 
    // 1~6번 입력 완료 시에만 시작 버튼 활성화
@@ -271,6 +285,7 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
 
   /* ── 2) ‘설문 시작’ 클릭 핸들러 ───────────────────── */
   startBtn.addEventListener('click', () => {
+
     // ── 수정된 유효성 검사 ──
     const nameOK   = !!nameIn.value.trim();
     const genderOK = !!genderIn.value;
@@ -324,8 +339,21 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
     // 엑셀 로드
     fetch('Questions.xlsx')
       .then(r=>r.arrayBuffer())
-      .then(buf=>{
-        const wb = XLSX.read(new Uint8Array(buf), {type:'array'});
+      .then(stuBuf=>{
+        // stuBuf는 ArrayBuffer
+        const wb = XLSX.read(new Uint8Array(stuBuf), { type: 'array' });
+        // 첫 번째 시트 사용(혹은 시트 이름을 정확히 지정)
+        const sheetName = wb.SheetNames[0];
+        const sheet = wb.Sheets[sheetName];
+        // 컬럼 A에 코드가 있다고 가정 (첫 행이 헤더라면 slice(1))
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        // 예: [['code'], ['ABC1234'], ['DEF5678'], …]
+        validCodes = rows
+        .slice(1)                 // 헤더 제거
+        .map(r => String(r[0]).trim())  // 첫 열만 추출
+        .filter(c => c.length === 7);
+        console.log('🔍 loaded validCodes:', validCodes);
+
         questionsA = XLSX.utils.sheet_to_json(wb.Sheets['Type A'], {defval:''})
         .map(r=>({
           no:       r['연번'],
@@ -767,6 +795,8 @@ function finishSurvey() {
   // currentCode 가 유효하고, 아직 usedCodes 에 없다면 추가
   if (currentCode && !usedCodes.includes(currentCode)) {
     usedCodes.push(currentCode);
+    // ── (E) 로컬스토리지에도 반영
+    localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
     console.log('✔ 코드 사용 등록:', currentCode);
   }
 
@@ -865,13 +895,15 @@ function finishSurvey() {
     의약학적성평균: averages.find(a=>a['척도(대분류)']==='의약학적성')?.평균||0,
     TypeB총점: totalB,
     TypeC총점: totalC,
-    설문완료일시: completeAt
+    설문완료일시: completeAt,
+    사용한코드: currentCode
   };
   surveyDB.push(row);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(surveyDB));
 
   // G) 워크북 생성 & 시트 추가
   const wb = XLSX.utils.book_new();
+  
 
   // -- Type A 시트
   //const wsA = XLSX.utils.json_to_sheet(dataA, { header:['연번','척도(대분류)','응답'] });
@@ -892,8 +924,8 @@ function finishSurvey() {
   //XLSX.utils.book_append_sheet(wb, wsC, 'Type C');
 
   // -- DB 시트
-  //const wsDB = XLSX.utils.json_to_sheet(surveyDB);
-  //XLSX.utils.book_append_sheet(wb, wsDB, 'DB');
+  const wsDB = XLSX.utils.json_to_sheet(surveyDB);
+  XLSX.utils.book_append_sheet(wb, wsDB, 'DB');
 
   // -- Recent 시트
   const wsRecent = XLSX.utils.json_to_sheet([row]);
