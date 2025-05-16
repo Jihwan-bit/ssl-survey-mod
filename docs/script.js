@@ -874,26 +874,26 @@ function finishSurvey() {
   const wb = XLSX.utils.book_new();
 
   // -- Type A 시트
-  const wsA = XLSX.utils.json_to_sheet(dataA, { header:['연번','척도(대분류)','응답'] });
-  XLSX.utils.sheet_add_json(wsA, averages, {
-    origin: dataA.length+1,
-    header:['척도(대분류)','평균']
-  });
-  XLSX.utils.book_append_sheet(wb, wsA, 'Type A');
+  //const wsA = XLSX.utils.json_to_sheet(dataA, { header:['연번','척도(대분류)','응답'] });
+  //XLSX.utils.sheet_add_json(wsA, averages, {
+  //  origin: dataA.length+1,
+  //  header:['척도(대분류)','평균']
+  //});
+  //XLSX.utils.book_append_sheet(wb, wsA, 'Type A');
 
   // -- Type B 시트
-  const wsB = XLSX.utils.json_to_sheet(dataB, { header:['연번','응답','정답','정오'] });
-  XLSX.utils.sheet_add_aoa(wsB, [['총점', totalB]], { origin:-1 });
-  XLSX.utils.book_append_sheet(wb, wsB, 'Type B');
+  //const wsB = XLSX.utils.json_to_sheet(dataB, { header:['연번','응답','정답','정오'] });
+  //XLSX.utils.sheet_add_aoa(wsB, [['총점', totalB]], { origin:-1 });
+  //XLSX.utils.book_append_sheet(wb, wsB, 'Type B');
 
   // -- Type C 시트
-  const wsC = XLSX.utils.json_to_sheet(dataC, { header:['연번','응답','정답','정오'] });
-  XLSX.utils.sheet_add_aoa(wsC, [['총점', totalC]], { origin:-1 });
-  XLSX.utils.book_append_sheet(wb, wsC, 'Type C');
+  //const wsC = XLSX.utils.json_to_sheet(dataC, { header:['연번','응답','정답','정오'] });
+  //XLSX.utils.sheet_add_aoa(wsC, [['총점', totalC]], { origin:-1 });
+  //XLSX.utils.book_append_sheet(wb, wsC, 'Type C');
 
   // -- DB 시트
-  const wsDB = XLSX.utils.json_to_sheet(surveyDB);
-  XLSX.utils.book_append_sheet(wb, wsDB, 'DB');
+  //const wsDB = XLSX.utils.json_to_sheet(surveyDB);
+  //XLSX.utils.book_append_sheet(wb, wsDB, 'DB');
 
   // -- Recent 시트
   const wsRecent = XLSX.utils.json_to_sheet([row]);
