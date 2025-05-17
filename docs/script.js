@@ -22,8 +22,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const resultDiv       = document.getElementById('result');
 
   const startBtn        = document.getElementById('start');
-  const devB            = document.getElementById('dev-b');
-  const devC            = document.getElementById('dev-c');
+  //const devB            = document.getElementById('dev-b');
+  //const devC            = document.getElementById('dev-c');
 
   const nameIn          = document.getElementById('name');
   const schoolIn        = document.getElementById('school');
@@ -58,7 +58,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const usedDL      = document.getElementById('used-download-link'); // 사용 코드 다운로드 링크
   
   // DOMContentLoaded 직후 또는 전역 스코프에서
-  const clearBtn = document.getElementById('clear-codes-btn');
+  // const clearBtn = document.getElementById('clear-codes-btn');
 
   let validCodes = [];   // stu_codes.xlsx로부터 로드된 유효 코드 목록
   let usedCodes  = [];   // used_stu_codes.xlsx로부터 로드된 이미 사용된 코드 목록
@@ -111,21 +111,21 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 }
 
-clearBtn.addEventListener('click', () => {
+//clearBtn.addEventListener('click', () => {
   // 1) 로컬스토리지에서 surveyDB, usedCodes 제거
-  localStorage.removeItem('surveyDB');
-  localStorage.removeItem('usedCodes');
+//  localStorage.removeItem('surveyDB');
+//  localStorage.removeItem('usedCodes');
 
   // 2) 메모리 변수도 초기화
-  usedCodes = [];
-  surveyDB = [];
+//  usedCodes = [];
+//  surveyDB = [];
 
   // 3) UI 리셋
-  codeInput.value = '';
-  codeMessage.textContent = '⚙️ 사용된 코드가 삭제되었습니다. 새로고침 후 테스트하세요.';
+//  codeInput.value = '';
+//  codeMessage.textContent = '⚙️ 사용된 코드가 삭제되었습니다. 새로고침 후 테스트하세요.';
   
-  console.log('🗑️ 사용된 코드 및 설문 DB 초기화 완료');
-});
+//  console.log('🗑️ 사용된 코드 및 설문 DB 초기화 완료');
+//});
 
   // ⇨ ➌ 코드 입력 검증 처리
   codeSubmit.addEventListener('click', e => {
@@ -158,36 +158,36 @@ currentCode = code;
   });
 
   // ── 디버그 버튼 핸들러 (설문 시작 후에만 눌러주세요) ─────────────────────
-devB.addEventListener('click', () => {
+//devB.addEventListener('click', () => {
 //   // Type A 응답을 모두 “3 (보통)”으로
-   respA = respA.map(() => 3);
+//   respA = respA.map(() => 3);
 //   // Type A 소요시간(240문항×10초)을 모두 소모했다고 설정
-   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
-   switchToTypeB();
- });
+//   startTime = Date.now() - questionsA.length * A_Q_SEC * 1000;
+//   switchToTypeB();
+// });
 
- devC.addEventListener('click', () => {
+// devC.addEventListener('click', () => {
 //   // Type A 응답을 모두 “3 (보통)”
-   respA = respA.map(() => 3);
+//   respA = respA.map(() => 3);
 //   // Type B 설문을 스킵했으니 모두 “A” 로
-   respB = respB.map(() => 'A');
+//   respB = respB.map(() => 'A');
 //   // Type A + Type B 소요시간(240×10초 + 10×60초)을 모두 소모했다고 설정
-   startTime = Date.now()
-     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
-   switchToTypeC();
- });
+//   startTime = Date.now()
+//     - (questionsA.length * A_Q_SEC + questionsB.length * B_Q_SEC) * 1000;
+//   switchToTypeC();
+// });
 
  // ── 추가: 설문완료 버튼 핸들러 ─────────────────────────────────────────
- const devFinish = document.getElementById('dev-finish');
- devFinish.addEventListener('click', () => {
+ //const devFinish = document.getElementById('dev-finish');
+ //devFinish.addEventListener('click', () => {
   // Type A 응답을 모두 “3 (보통)”으로 설정
-  respA = respA.map(() => 3);
+ // respA = respA.map(() => 3);
   // Type B와 Type C 응답을 모두 “A” 로 설정
-  respB = respB.map(() => 'A');
-  respC = respC.map(() => 'A');
+//  respB = respB.map(() => 'A');
+//  respC = respC.map(() => 'A');
   // 바로 설문 종료 & 결과 화면으로 이동
-  finishSurvey();
-  });
+//  finishSurvey();
+//  });
 
 
    // 1~6번 입력 완료 시에만 시작 버튼 활성화
@@ -239,7 +239,7 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
   if (regionIn.value === '서울 특별시') {
     subRgGrp.classList.remove('hidden');
     msGrp.classList.add('hidden');
-    schoolIn.classList.add('hidden');
+    schoolIn.classList.remove('hidden');
     msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
   } else {
     subRgGrp.classList.add('hidden');
@@ -258,19 +258,17 @@ tPills.forEach(p    => p.addEventListener('click', validatePersonalInfo));
     const v = p.dataset.value;
     msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
 
-    if (v === '기타 지역') {
-      msGrp.classList.add('hidden');
-    } else {
-      msGrp.classList.remove('hidden');
-      schoolMap[v].forEach(sch => {
-        const o = document.createElement('option');
-        o.value = sch; o.textContent = sch;
-        msSelect.appendChild(o);
-      });
-      const oOther = document.createElement('option');
-      oOther.value = '기타'; oOther.textContent = '기타';
-      msSelect.appendChild(oOther);
-    }
+   if (v === '기타 지역') {
+   msGrp.classList.add('hidden');
+  } else {
+   msGrp.classList.remove('hidden');
+   msSelect.innerHTML = '<option value="" disabled selected>중학교 선택</option>';
+   schoolMap[v].forEach(sch => {
+     const opt = document.createElement('option');
+     opt.value = sch; opt.text = sch;
+     msSelect.append(opt);
+   });
+ }
     validatePersonalInfo();
   }));
 
@@ -936,10 +934,11 @@ function finishSurvey() {
   const buf    = new Uint8Array(binStr.length);
   for (let i=0; i<binStr.length; ++i) buf[i] = binStr.charCodeAt(i);
   const blob   = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url    = URL.createObjectURL(blob);
-  const dl     = document.getElementById('download-link');
-  dl.href      = url;
-  // H) Blob 방식 다운로드 직후에 추가
+  
+  // ── 다운로드 링크 숨김 (클릭 불필요)
+  const dl = document.getElementById('download-link');
+  if (dl) dl.style.display = 'none'; // 직후에 추가
+
 blob.arrayBuffer().then(buffer => {
   console.log('▶ GitHub 업로드 시작', nameVal, completeAt);
 
@@ -972,16 +971,23 @@ blob.arrayBuffer().then(buffer => {
 
  // ── 사용된 코드 엑셀 생성 ─────────────────────────────
 const wbUsedOut = XLSX.utils.book_new();
-const wsUsed    = XLSX.utils.aoa_to_sheet([
-  ['code'],
-  ...usedCodes.map(c => [c])
-]);
+// surveyDB에서 2열(학생성명)부터 설문완료일시까지 추출하여 code 열 우측에 배치
+const headerKeys = Object.keys(surveyDB[0] || {})
+  .slice(1, Object.keys(surveyDB[0]).indexOf('설문완료일시') + 1);
+const headers = ['code', ...headerKeys];
+const rows = usedCodes.map(code => {
+  const record = surveyDB.find(r => r['사용한코드'] === code) || {};
+  return [
+    code,
+    ...headerKeys.map(key => record[key] != null ? record[key] : '')
+  ];
+});
+const wsUsed = XLSX.utils.aoa_to_sheet([headers, ...rows]);
 XLSX.utils.book_append_sheet(wbUsedOut, wsUsed, 'UsedCodes');
 const out2  = XLSX.write(wbUsedOut, { bookType:'xlsx', type:'array' });
 const blob2 = new Blob([out2], {
   type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 });
-
 if (usedDL) {
   usedDL.href   = URL.createObjectURL(blob2);
   usedDL.download = 'used_stu_codes.xlsx';
@@ -1023,29 +1029,51 @@ function setDownloadLinks(wb) {
     const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const buf = new Uint8Array(out).buffer;
 
-    // 3) Blob 하나만 생성
-    const blob = new Blob([buf], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    const url  = URL.createObjectURL(blob);
+    // (A) Blob 생성 직후 위치 예시
+const wbOut  = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+const blob   = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-    // 4) DOM에서 링크 요소 다시 조회
-    const nameInput    = document.getElementById('name');
-    const userName     = nameInput?.value.trim() || 'anonymous';
-    const downloadLink = document.getElementById('download-link');
-    const dbLink       = document.getElementById('db-download-link');
+// (B) 기존 다운로드 링크 설정 부분
+const url    = URL.createObjectURL(blob);
+const dl     = document.getElementById('download-link');
+dl.href      = url;
 
-    // 5) 두 링크에 Blob URL 할당, 파일명만 다르게
-    if (downloadLink) {
-      downloadLink.href     = url;
-      downloadLink.download = `survey_result_${userName}.xlsx`;
-    }
-    if (dbLink) {
-      dbLink.href     = url;
-      dbLink.download = `survey_database_${userName}.xlsx`;
-    }
-  } catch (err) {
-    console.error('다운로드 링크 설정 중 오류:', err);
-    alert('엑셀 파일 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+// ─── 여기서부터 자동 저장 로직 추가 ──────────────────────────────────
+blob.arrayBuffer().then(buffer => {
+  // 1) ArrayBuffer → Uint8Array
+  const bytes = new Uint8Array(buffer);
+  
+  // 2) Uint8Array → 문자열 변환
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
-}
+  
+  // 3) 문자열 → Base64
+  const b64 = btoa(binary);
+
+  // 4) 서버로 전송할 파일명 설정
+  //    예: survey_result_홍길동.xlsx
+  const filename = `survey_result_${encodeURIComponent(nameVal)}.xlsx`;
+
+  // 5) fetch로 POST 요청
+  fetch('/api/save-excel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, content: b64 })
+  })
+  .then(res => res.json())
+  .then(json => {
+    if (json.success) {
+      console.log('서버에 저장된 경로:', json.file);
+    } else {
+      console.error('저장 실패:', json.error);
+    }
+  })
+  .catch(err => console.error('네트워크 오류:', err));
+});
+
+  } catch (err) {
+    console.error('[setDownloadLinks] 오류:', err);
+  }
+}  // ← setDownloadLinks 함수 닫기
